@@ -2,10 +2,11 @@ package com.openhands.tvgamerefund.ui.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class BottomNavItem(
@@ -28,7 +29,7 @@ sealed class BottomNavItem(
     data object Invoices : BottomNavItem(
         route = "invoices",
         title = "Factures",
-        icon = Icons.Default.Description
+        icon = Icons.Outlined.Receipt
     )
     
     data object Profile : BottomNavItem(

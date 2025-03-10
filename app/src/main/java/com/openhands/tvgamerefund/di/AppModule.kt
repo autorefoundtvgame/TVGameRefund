@@ -2,6 +2,7 @@ package com.openhands.tvgamerefund.di
 
 import android.content.Context
 import com.openhands.tvgamerefund.data.network.FreeApiService
+import com.openhands.tvgamerefund.data.network.FreeAuthManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -34,5 +35,11 @@ object AppModule {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(FreeApiService::class.java)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideFreeAuthManager(okHttpClient: OkHttpClient): FreeAuthManager {
+        return FreeAuthManager(okHttpClient)
     }
 }
