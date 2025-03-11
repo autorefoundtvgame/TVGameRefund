@@ -1,11 +1,18 @@
 package com.openhands.tvgamerefund.data.models
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import androidx.room.TypeConverters
+import com.openhands.tvgamerefund.data.database.Converters
 import java.util.Date
 
 /**
  * Représente une facture téléphonique
  */
+@Entity(tableName = "invoices")
+@TypeConverters(Converters::class)
 data class Invoice(
+    @PrimaryKey
     val id: String,
     val operatorId: String,
     val phoneNumber: String,
@@ -14,18 +21,25 @@ data class Invoice(
     val pdfUrl: String,
     val localPdfPath: String? = null,
     val hasGameFees: Boolean = false,
-    val gameFees: List<GameFee> = emptyList(),
-    val status: InvoiceStatus = InvoiceStatus.NEW
+    val status: InvoiceStatus = InvoiceStatus.NEW,
+    val createdAt: Date = Date(),
+    val updatedAt: Date = Date()
 )
 
 /**
  * Représente un frais de jeu sur une facture
  */
-data class GameFee(
+@Entity(tableName = "invoice_game_fees")
+data class InvoiceGameFee(
+    @PrimaryKey
+    val id: String,
+    val invoiceId: String,
     val gameId: String,
     val amount: Double,
     val date: Date,
-    val phoneNumber: String
+    val phoneNumber: String,
+    val createdAt: Date = Date(),
+    val updatedAt: Date = Date()
 )
 
 /**

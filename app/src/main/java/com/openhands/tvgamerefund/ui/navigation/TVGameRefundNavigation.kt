@@ -20,20 +20,26 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.openhands.tvgamerefund.ui.screens.games.GamesScreen
+import com.openhands.tvgamerefund.ui.screens.games.RefreshGamesScreen
 import com.openhands.tvgamerefund.ui.screens.invoices.InvoicesScreen
 import com.openhands.tvgamerefund.ui.screens.participations.ParticipationsScreen
 import com.openhands.tvgamerefund.ui.screens.profile.ProfileScreen
+import com.openhands.tvgamerefund.ui.screens.settings.AuthTestScreen
 import com.openhands.tvgamerefund.ui.screens.settings.SettingsScreen
+import com.openhands.tvgamerefund.ui.screens.settings.WebViewAuthScreen
 
 sealed class Screen(val route: String) {
     data object GamesList : Screen("games")
     data object GameDetail : Screen("game/{gameId}") {
         fun createRoute(gameId: String) = "game/$gameId"
     }
+    data object RefreshGames : Screen("refresh_games")
     data object Participations : Screen("participations")
     data object Invoices : Screen("invoices")
     data object Profile : Screen("profile")
     data object Settings : Screen("settings")
+    data object AuthTest : Screen("auth_test")
+    data object WebViewAuth : Screen("web_view_auth")
 }
 
 @Composable
@@ -52,6 +58,17 @@ fun TVGameRefundNavigation() {
                 GamesScreen(
                     onGameClick = { gameId ->
                         navController.navigate(Screen.GameDetail.createRoute(gameId))
+                    },
+                    onRefreshClick = {
+                        navController.navigate(Screen.RefreshGames.route)
+                    }
+                )
+            }
+            
+            composable(Screen.RefreshGames.route) {
+                RefreshGamesScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
                     }
                 )
             }
@@ -82,7 +99,29 @@ fun TVGameRefundNavigation() {
             }
 
             composable(Screen.Settings.route) {
-                SettingsScreen()
+                SettingsScreen(
+                    onAuthTestClick = {
+                        navController.navigate(Screen.AuthTest.route)
+                    },
+                    onWebViewAuthClick = {
+                        navController.navigate(Screen.WebViewAuth.route)
+                    }
+                )
+            }
+            
+            composable(Screen.AuthTest.route) {
+                AuthTestScreen()
+            }
+            
+            composable(Screen.WebViewAuth.route) {
+                WebViewAuthScreen(
+                    onAuthSuccess = {
+                        navController.popBackStack()
+                    },
+                    onBack = {
+                        navController.popBackStack()
+                    }
+                )
             }
         }
     }

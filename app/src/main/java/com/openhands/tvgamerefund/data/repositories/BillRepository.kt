@@ -24,14 +24,14 @@ class BillRepository @Inject constructor(
                     return@withContext Result.failure(Exception("Failed to download bill"))
                 }
                 
-                val body = response.body() ?: return@withContext Result.failure(
+                val responseBody = response.body() ?: return@withContext Result.failure(
                     Exception("Empty response")
                 )
                 
                 // Save PDF to app's private storage
                 val file = File.createTempFile("bill_$invoiceId", ".pdf")
                 file.outputStream().use { 
-                    body.byteStream().copyTo(it)
+                    responseBody.byteStream().copyTo(it)
                 }
                 
                 Result.success(file)

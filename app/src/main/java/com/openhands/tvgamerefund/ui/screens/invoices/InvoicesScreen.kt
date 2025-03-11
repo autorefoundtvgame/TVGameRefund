@@ -14,16 +14,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.FindInPage
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -118,40 +121,93 @@ fun InvoicesScreen(
                     onDownloadClick = { viewModel.downloadInvoice(it) },
                     onAnalyzeClick = { viewModel.analyzeInvoice(it) }
                 )
-            } else if (uiState.invoices.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "Aucune facture disponible",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Button(onClick = { viewModel.fetchInvoices() }) {
-                        Text("Rafraîchir")
-                    }
-                }
             } else {
-                // Afficher la liste des factures
-                LazyColumn(
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(16.dp)
                 ) {
-                    items(uiState.invoices) { invoice ->
-                        InvoiceCard(
-                            invoice = invoice,
-                            onClick = { viewModel.selectInvoice(invoice) }
+                    // Afficher les numéros de téléphone disponibles
+                    if (uiState.availablePhoneNumbers.size > 1) {
+                        Text(
+                            text = "Sélectionner un numéro",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
                         )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        PhoneNumberSelector(
+                            phoneNumbers = uiState.availablePhoneNumbers,
+                            selectedPhoneNumber = uiState.selectedPhoneNumber,
+                            onPhoneNumberSelected = { viewModel.selectPhoneNumber(it) }
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                    
+                    if (uiState.invoices.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Aucune facture disponible",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    } else {
+                        // Afficher la liste des factures
+                        Text(
+                            text = "Factures disponibles",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(uiState.invoices) { invoice ->
+                                InvoiceCard(
+                                    invoice = invoice,
+                                    onClick = { viewModel.selectInvoice(invoice) }
+                                )
+                            }
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PhoneNumberSelector(
+    phoneNumbers: List<String>,
+    selectedPhoneNumber: String?,
+    onPhoneNumberSelected: (String) -> Unit
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(phoneNumbers) { phoneNumber ->
+            FilterChip(
+                selected = phoneNumber == selectedPhoneNumber,
+                onClick = { onPhoneNumberSelected(phoneNumber) },
+                label = { Text(phoneNumber) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            )
         }
     }
 }

@@ -3,6 +3,8 @@ package com.openhands.tvgamerefund.di
 import android.content.Context
 import com.openhands.tvgamerefund.data.network.FreeApiService
 import com.openhands.tvgamerefund.data.network.FreeAuthManager
+import com.openhands.tvgamerefund.data.scraper.JsoupTF1GameScraper
+import com.openhands.tvgamerefund.data.scraper.TF1GameScraper
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -23,6 +25,9 @@ object AppModule {
         return OkHttpClient.Builder()
             .followRedirects(true)
             .followSslRedirects(true)
+            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
             .build()
     }
 
@@ -39,7 +44,22 @@ object AppModule {
     
     @Provides
     @Singleton
-    fun provideFreeAuthManager(okHttpClient: OkHttpClient): FreeAuthManager {
-        return FreeAuthManager(okHttpClient)
+    fun provideFreeAuthManager(
+        okHttpClient: OkHttpClient,
+        @ApplicationContext context: Context
+    ): FreeAuthManager {
+        return FreeAuthManager(okHttpClient, context)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideTF1GameScraper(okHttpClient: OkHttpClient): com.openhands.tvgamerefund.data.scraper.TF1GameScraper {
+        return com.openhands.tvgamerefund.data.scraper.TF1GameScraper(okHttpClient)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideJsoupTF1GameScraper(): com.openhands.tvgamerefund.data.scraper.JsoupTF1GameScraper {
+        return com.openhands.tvgamerefund.data.scraper.JsoupTF1GameScraper()
     }
 }

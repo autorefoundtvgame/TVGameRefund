@@ -1,14 +1,16 @@
 package com.openhands.tvgamerefund.ui.screens.settings
 
-import androidx.compose.foundation.layout.Arrangement
+
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -17,6 +19,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,7 +36,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
-    viewModel: SettingsViewModel = hiltViewModel()
+    viewModel: SettingsViewModel = hiltViewModel(),
+    onAuthTestClick: () -> Unit = {},
+    onWebViewAuthClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -82,25 +87,15 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Row(
+            Button(
+                onClick = onWebViewAuthClick,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                enabled = !uiState.isLoading && uiState.username.isNotBlank() && uiState.password.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
             ) {
-                Button(
-                    onClick = { viewModel.testConnection() },
-                    modifier = Modifier.weight(1f),
-                    enabled = !uiState.isLoading
-                ) {
-                    Text("Tester la connexion")
-                }
-
-                Button(
-                    onClick = { viewModel.saveCredentials() },
-                    modifier = Modifier.weight(1f),
-                    enabled = !uiState.isLoading && uiState.isTestSuccessful
-                ) {
-                    Text("Enregistrer")
-                }
+                Text("Se connecter et sauvegarder")
             }
 
             if (uiState.isLoading) {
@@ -113,9 +108,22 @@ fun SettingsScreen(
                 ErrorMessage(error = error)
             }
 
-            if (uiState.isTestSuccessful) {
-                SuccessMessage()
+            uiState.successMessage?.let { message ->
+                SuccessMessage(message = message)
             }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Bouton de diagnostic caché pour le débogage
+            // Commentez cette section en production
+            Button(
+                onClick = onAuthTestClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Outils de diagnostic d'authentification")
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }

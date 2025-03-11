@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,10 +23,12 @@ import java.util.*
 @Composable
 fun GamesScreen(
     onGameClick: (String) -> Unit,
+    onRefreshClick: () -> Unit,
     viewModel: GamesViewModel = hiltViewModel()
 ) {
-    val games by viewModel.games.collectAsState(initial = emptyList())
-    val filteredGames by viewModel.filteredGames.collectAsState(initial = emptyList())
+    val uiState by viewModel.uiState.collectAsState()
+    val games = uiState.games
+    val filteredGames = uiState.filteredGames
     var searchQuery by remember { mutableStateOf("") }
     var showOnlyFavorites by remember { mutableStateOf(false) }
 
@@ -36,7 +39,15 @@ fun GamesScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                ),
+                actions = {
+                    IconButton(onClick = onRefreshClick) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Rafraîchir les jeux"
+                        )
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -50,12 +61,12 @@ fun GamesScreen(
                 searchQuery = searchQuery,
                 onSearchQueryChange = { 
                     searchQuery = it
-                    viewModel.filterGames(it, showOnlyFavorites)
+                    viewModel.updateSearchQuery(it)
                 },
                 showOnlyFavorites = showOnlyFavorites,
                 onShowOnlyFavoritesChange = { 
                     showOnlyFavorites = it
-                    viewModel.filterGames(searchQuery, it)
+                    viewModel.updateLikedFilter(it)
                 }
             )
             
