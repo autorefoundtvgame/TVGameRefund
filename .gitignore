@@ -1,0 +1,35 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+# Project exclude paths
+/app/build/
+/app/build/intermediates/javac/debug/classes/
+
+# Fichiers de clés et secrets
+*.jks
+*.keystore
+*.p12
+google-services.json
+firebase_credentials.json
+
+# Fichiers de log
+*.log
+
+# Fichiers de sauvegarde Android Studio
+*.hprof
+
+# Fichiers spécifiques à l'application
+/app/release
+/app/debug
+/app/src/debug/res/values/google_maps_api.xml
+/app/src/release/res/values/google_maps_api.xml
+
+# Fichiers de configuration spécifiques à l'utilisateur
+/app/src/main/java/com/openhands/tvgamerefund/config/Credentials.kt

@@ -87,14 +87,18 @@ L'application est développée en utilisant :
 
 1. Clonez le dépôt :
 ```
-git clone https://github.com/votre-utilisateur/TVGameRefund.git
+git clone https://github.com/autorefoundtvgame/TVGameRefund.git
 ```
 
 2. Ouvrez le projet dans Android Studio
 
-3. Synchronisez le projet avec les fichiers Gradle
+3. Configurez votre fichier `google-services.json` avec vos propres identifiants Firebase
 
-4. Exécutez l'application sur un émulateur ou un appareil physique
+4. Configurez votre clé API TMDb dans le fichier `TMDbRepository.kt`
+
+5. Synchronisez le projet avec les fichiers Gradle
+
+6. Exécutez l'application sur un émulateur ou un appareil physique
 
 ## Contribution
 
@@ -102,4 +106,8 @@ Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou à
 
 ## Licence
 
-Ce projet est sous licence [à définir] - voir le fichier LICENSE pour plus de détails.
+Ce projet est sous licence MIT - voir le fichier LICENSE pour plus de détails.
+
+## Avertissement
+
+Cette application est fournie à titre informatif et éducatif. Les auteurs ne garantissent pas le succès des demandes de remboursement et ne sont pas responsables de l'utilisation qui pourrait être faite de cette application.
