@@ -3,6 +3,7 @@ package com.openhands.tvgamerefund.ui.screens.invoices
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.openhands.tvgamerefund.data.models.Invoice
+import com.openhands.tvgamerefund.data.models.InvoiceGameFee
 import com.openhands.tvgamerefund.data.models.InvoiceStatus
 import com.openhands.tvgamerefund.data.models.Operator
 import com.openhands.tvgamerefund.data.repository.InvoiceRepository
@@ -19,11 +20,14 @@ data class InvoicesUiState(
     val invoices: List<Invoice> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
+    val successMessage: String? = null,
     val selectedInvoice: Invoice? = null,
     val selectedOperator: Operator = Operator.FREE,
     val phoneNumber: String = "",
     val availablePhoneNumbers: List<String> = emptyList(),
-    val selectedPhoneNumber: String? = null
+    val selectedPhoneNumber: String? = null,
+    val gameFees: Map<String, List<InvoiceGameFee>> = emptyMap(),
+    val autoAnalyzeEnabled: Boolean = true
 )
 
 @HiltViewModel
@@ -37,6 +41,13 @@ class InvoicesViewModel @Inject constructor(
     
     init {
         loadOperatorInfo()
+        
+        // Observer les frais de jeu
+        viewModelScope.launch {
+            invoiceRepository.invoiceGameFees.collect { gameFees ->
+                _uiState.update { it.copy(gameFees = gameFees) }
+            }
+        }
     }
     
     /**
@@ -123,8 +134,14 @@ class InvoicesViewModel @Inject constructor(
                     _uiState.update { 
                         it.copy(
                             invoices = sortedInvoices,
-                            isLoading = false
+                            isLoading = false,
+                            successMessage = "Factures récupérées avec succès"
                         )
+                    }
+                    
+                    // Si l'analyse automatique est activée, analyser les factures
+                    if (_uiState.value.autoAnalyzeEnabled) {
+                        analyzeAllInvoices()
                     }
                 },
                 onFailure = { error ->
@@ -166,8 +183,14 @@ class InvoicesViewModel @Inject constructor(
                     _uiState.update { 
                         it.copy(
                             invoices = updatedInvoices,
-                            isLoading = false
+                            isLoading = false,
+                            successMessage = "Facture téléchargée avec succès"
                         )
+                    }
+                    
+                    // Si l'analyse automatique est activée, analyser la facture
+                    if (_uiState.value.autoAnalyzeEnabled) {
+                        analyzeInvoice(invoice)
                     }
                 },
                 onFailure = { error ->
@@ -183,7 +206,7 @@ class InvoicesViewModel @Inject constructor(
     }
     
     /**
-     * Analyse une facture pour identifier les frais de jeu
+     * Analyse une facture pour détecter les frais de jeu
      * @param invoice Facture à analyser
      */
     fun analyzeInvoice(invoice: Invoice) {
@@ -193,17 +216,33 @@ class InvoicesViewModel @Inject constructor(
             val result = invoiceRepository.analyzeInvoice(invoice)
             
             result.fold(
-                onSuccess = { updatedInvoice ->
+                onSuccess = { gameFees ->
                     // Mettre à jour l'état avec la facture analysée
                     val updatedInvoices = _uiState.value.invoices.map { 
-                        if (it.id == invoice.id) updatedInvoice else it
+                        if (it.id == invoice.id) {
+                            it.copy(
+                                status = InvoiceStatus.ANALYZED,
+                                hasGameFees = gameFees.isNotEmpty()
+                            )
+                        } else {
+                            it
+                        }
                     }
                     
                     _uiState.update { 
                         it.copy(
                             invoices = updatedInvoices,
-                            isLoading = false
+                            isLoading = false,
+                            successMessage = if (gameFees.isNotEmpty()) 
+                                "${gameFees.size} frais de jeu détectés" 
+                            else 
+                                "Aucun frais de jeu détecté"
                         )
+                    }
+                    
+                    // Si des frais de jeu ont été détectés, générer un PDF annoté
+                    if (gameFees.isNotEmpty() && _uiState.value.autoAnalyzeEnabled) {
+                        generateAnnotatedPdf(invoice)
                     }
                 },
                 onFailure = { error ->
@@ -219,7 +258,135 @@ class InvoicesViewModel @Inject constructor(
     }
     
     /**
-     * Sélectionne une facture pour afficher ses détails
+     * Analyse toutes les factures téléchargées
+     */
+    fun analyzeAllInvoices() {
+        viewModelScope.launch {
+            val downloadedInvoices = _uiState.value.invoices.filter { 
+                it.status == InvoiceStatus.DOWNLOADED || it.localPdfPath != null 
+            }
+            
+            if (downloadedInvoices.isEmpty()) {
+                _uiState.update { 
+                    it.copy(
+                        successMessage = "Aucune facture téléchargée à analyser"
+                    )
+                }
+                return@launch
+            }
+            
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            
+            var successCount = 0
+            var errorCount = 0
+            
+            for (invoice in downloadedInvoices) {
+                val result = invoiceRepository.analyzeInvoice(invoice)
+                
+                if (result.isSuccess) {
+                    successCount++
+                } else {
+                    errorCount++
+                }
+            }
+            
+            _uiState.update { 
+                it.copy(
+                    isLoading = false,
+                    successMessage = "$successCount factures analysées avec succès, $errorCount échecs"
+                )
+            }
+        }
+    }
+    
+    /**
+     * Génère un PDF annoté avec les frais de jeu mis en évidence
+     * @param invoice Facture à annoter
+     */
+    fun generateAnnotatedPdf(invoice: Invoice) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            
+            val result = invoiceRepository.generateAnnotatedPdf(invoice)
+            
+            result.fold(
+                onSuccess = { filePath ->
+                    // Mettre à jour l'état avec la facture annotée
+                    val updatedInvoices = _uiState.value.invoices.map { 
+                        if (it.id == invoice.id) {
+                            it.copy(
+                                status = InvoiceStatus.EDITED
+                            )
+                        } else {
+                            it
+                        }
+                    }
+                    
+                    _uiState.update { 
+                        it.copy(
+                            invoices = updatedInvoices,
+                            isLoading = false,
+                            successMessage = "PDF annoté généré avec succès"
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(
+                            isLoading = false,
+                            error = "Erreur lors de la génération du PDF annoté: ${error.message}"
+                        )
+                    }
+                }
+            )
+        }
+    }
+    
+    /**
+     * Vérifie si de nouvelles factures sont disponibles
+     */
+    fun checkForNewInvoices() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            
+            val phoneNumber = _uiState.value.selectedPhoneNumber ?: _uiState.value.phoneNumber
+            
+            val result = invoiceRepository.checkForNewInvoices(
+                operatorId = _uiState.value.selectedOperator.name,
+                phoneNumber = phoneNumber
+            )
+            
+            result.fold(
+                onSuccess = { hasNewInvoices ->
+                    _uiState.update { 
+                        it.copy(
+                            isLoading = false,
+                            successMessage = if (hasNewInvoices) 
+                                "Nouvelles factures disponibles" 
+                            else 
+                                "Aucune nouvelle facture disponible"
+                        )
+                    }
+                    
+                    // Si de nouvelles factures sont disponibles, les récupérer
+                    if (hasNewInvoices) {
+                        fetchInvoices()
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(
+                            isLoading = false,
+                            error = "Erreur lors de la vérification des nouvelles factures: ${error.message}"
+                        )
+                    }
+                }
+            )
+        }
+    }
+    
+    /**
+     * Sélectionne une facture
      * @param invoice Facture à sélectionner
      */
     fun selectInvoice(invoice: Invoice) {
@@ -227,9 +394,31 @@ class InvoicesViewModel @Inject constructor(
     }
     
     /**
-     * Désélectionne la facture actuellement sélectionnée
+     * Désélectionne la facture
      */
     fun clearSelectedInvoice() {
         _uiState.update { it.copy(selectedInvoice = null) }
+    }
+    
+    /**
+     * Active ou désactive l'analyse automatique
+     * @param enabled true pour activer, false pour désactiver
+     */
+    fun setAutoAnalyzeEnabled(enabled: Boolean) {
+        _uiState.update { it.copy(autoAnalyzeEnabled = enabled) }
+    }
+    
+    /**
+     * Efface le message de succès
+     */
+    fun clearSuccessMessage() {
+        _uiState.update { it.copy(successMessage = null) }
+    }
+    
+    /**
+     * Efface le message d'erreur
+     */
+    fun clearErrorMessage() {
+        _uiState.update { it.copy(error = null) }
     }
 }

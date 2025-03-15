@@ -1,12 +1,15 @@
 package com.openhands.tvgamerefund.ui.screens.games
 
+import android.util.Log
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.openhands.tvgamerefund.data.models.Game
 import com.openhands.tvgamerefund.data.models.GameType
+import com.openhands.tvgamerefund.data.models.Show
 import com.openhands.tvgamerefund.data.models.UserParticipation
 import com.openhands.tvgamerefund.data.models.UserVote
+import com.openhands.tvgamerefund.data.network.MockImageService
 import com.openhands.tvgamerefund.data.repository.FirebaseVoteRepository
 import com.openhands.tvgamerefund.data.repository.GameRepository
 import com.openhands.tvgamerefund.data.repository.ShowRepository
@@ -58,8 +61,13 @@ class GamesViewModel @Inject constructor(
     private val _showPosters = mutableStateMapOf<String, String?>()
     val showPosters: Map<String, String?> = _showPosters
     
+    // Map pour stocker les URLs des images des jeux
+    private val _gameImages = mutableStateMapOf<String, String>()
+    val gameImages: Map<String, String> = _gameImages
+    
     init {
-        loadGames()
+        // Insérer un jeu de test directement au démarrage
+        insertTestGame()
     }
     
     /**
@@ -67,11 +75,32 @@ class GamesViewModel @Inject constructor(
      */
     fun loadGames() {
         viewModelScope.launch {
+            Log.d("GamesViewModel", "Début du chargement des jeux")
             _uiState.update { it.copy(isLoading = true, error = null) }
             
             try {
                 // Récupérer les jeux depuis la base de données locale
+                Log.d("GamesViewModel", "Récupération des jeux depuis la base de données")
                 gameRepository.getAllGames().collect { games ->
+                    Log.d("GamesViewModel", "Nombre de jeux récupérés: ${games.size}")
+                    
+                    if (games.isEmpty()) {
+                        Log.d("GamesViewModel", "Aucun jeu trouvé dans la base de données")
+                    } else {
+                        Log.d("GamesViewModel", "Jeux trouvés: ${games.map { it.title }}")
+                    }
+                    
+                    // Charger les posters pour les jeux depuis TMDb
+                    games.forEach { game ->
+                        // Charger le poster depuis TMDb
+                        loadShowPoster(game)
+                        
+                        // Si aucun poster n'est disponible, utiliser une image générée
+                        if (!_gameImages.containsKey(game.id)) {
+                            _gameImages[game.id] = MockImageService.getGameShowImageById(game.id)
+                        }
+                    }
+                    
                     _uiState.update { state ->
                         state.copy(
                             games = games,
@@ -83,12 +112,10 @@ class GamesViewModel @Inject constructor(
                     // Charger les statistiques pour chaque jeu
                     loadGameStats(games)
                     
-                    // Charger les posters pour chaque jeu
-                    games.forEach { game ->
-                        loadShowPoster(game)
-                    }
+                    // Les posters sont déjà chargés plus haut
                 }
             } catch (e: Exception) {
+                Log.e("GamesViewModel", "Erreur lors du chargement des jeux", e)
                 _uiState.update { 
                     it.copy(
                         isLoading = false,
@@ -104,14 +131,25 @@ class GamesViewModel @Inject constructor(
      */
     fun refreshGames() {
         viewModelScope.launch {
+            Log.d("GamesViewModel", "Début du rafraîchissement des jeux")
             _uiState.update { it.copy(isLoading = true, error = null) }
             
             try {
                 // Scraper les jeux de TF1
+                Log.d("GamesViewModel", "Appel du scraper TF1")
                 val result = tf1GameScraper.scrapeTF1Games()
                 
                 result.fold(
                     onSuccess = { games ->
+                        Log.d("GamesViewModel", "Scraping réussi, ${games.size} jeux trouvés")
+                        
+                        // Si aucun jeu n'est trouvé, charger des données de test
+                        if (games.isEmpty()) {
+                            Log.d("GamesViewModel", "Aucun jeu trouvé par le scraper, chargement des données de test")
+                            loadMockGames()
+                            return@fold
+                        }
+                        
                         // Insérer les jeux dans la base de données
                         games.forEach { game ->
                             // Vérifier si le show existe déjà
@@ -125,12 +163,25 @@ class GamesViewModel @Inject constructor(
                                     description = "Émission de TF1",
                                     imageUrl = null
                                 )
+                                Log.d("GamesViewModel", "Insertion du show: ${newShow.title}")
                                 showRepository.insertShow(newShow)
                             }
                             
                             // Insérer ou mettre à jour le jeu
-                            gameRepository.insertGame(game)
+                            try {
+                                Log.d("GamesViewModel", "Insertion du jeu: ${game.title}")
+                                gameRepository.insertGame(game)
+                                Log.d("GamesViewModel", "Jeu inséré avec succès: ${game.title}")
+                            } catch (e: Exception) {
+                                Log.e("GamesViewModel", "Erreur lors de l'insertion du jeu: ${game.title}", e)
+                            }
                         }
+                        
+                        // Recharger les jeux depuis la base de données pour vérifier qu'ils ont bien été insérés
+                        Log.d("GamesViewModel", "Rechargement des jeux depuis la base de données")
+                        
+                        // Utiliser la méthode existante pour recharger les jeux
+                        loadGames()
                         
                         _uiState.update { 
                             it.copy(
@@ -140,21 +191,31 @@ class GamesViewModel @Inject constructor(
                         }
                     },
                     onFailure = { error ->
+                        Log.e("GamesViewModel", "Erreur lors du scraping", error)
                         _uiState.update { 
                             it.copy(
                                 isLoading = false,
                                 error = "Erreur lors du rafraîchissement des jeux: ${error.message}"
                             )
                         }
+                        
+                        // En cas d'erreur, charger des données de test
+                        Log.d("GamesViewModel", "Chargement des données de test suite à une erreur")
+                        loadMockGames()
                     }
                 )
             } catch (e: Exception) {
+                Log.e("GamesViewModel", "Exception lors du rafraîchissement des jeux", e)
                 _uiState.update { 
                     it.copy(
                         isLoading = false,
                         error = "Erreur lors du rafraîchissement des jeux: ${e.message}"
                     )
                 }
+                
+                // En cas d'exception, charger des données de test
+                Log.d("GamesViewModel", "Chargement des données de test suite à une exception")
+                loadMockGames()
             }
         }
     }
@@ -412,7 +473,7 @@ class GamesViewModel @Inject constructor(
         return games.filter { game ->
             val matchesQuery = query.isEmpty() || game.title.contains(query, ignoreCase = true)
             val matchesLiked = !likedOnly || game.isLiked
-            val matchesChannel = channel == null || channel.isEmpty() || game.showId.contains(channel, ignoreCase = true)
+            val matchesChannel = channel == null || game.showId.contains(channel, ignoreCase = true)
             
             matchesQuery && matchesLiked && matchesChannel
         }
@@ -433,22 +494,87 @@ class GamesViewModel @Inject constructor(
     }
     
     /**
-     * Charge le poster d'une émission depuis TMDb
+     * Charge le poster d'une émission
      */
     fun loadShowPoster(game: Game) {
         viewModelScope.launch {
             if (!_showPosters.containsKey(game.id)) {
-                // Définir temporairement à null pour éviter des requêtes multiples
+                // Définir une valeur par défaut
                 _showPosters[game.id] = null
                 
                 try {
-                    // Rechercher l'émission sur TMDb
-                    val shows = tmdbRepository.searchShow(game.showName)
-                    val posterPath = shows.firstOrNull()?.poster_path
-                    _showPosters[game.id] = tmdbRepository.getPosterUrl(posterPath)
+                    val showTitle = game.title.split(" - ").firstOrNull() ?: game.title
+                    // Rechercher l'émission dans TMDb
+                    val shows = tmdbRepository.searchShow(showTitle)
+                    if (shows.isNotEmpty()) {
+                        // Prendre le premier résultat et récupérer l'URL du poster
+                        val posterPath = shows.first().posterPath
+                        val posterUrl = tmdbRepository.getPosterUrl(posterPath)
+                        _showPosters[game.id] = posterUrl
+                        
+                        // Si un poster est trouvé, l'utiliser aussi comme image du jeu
+                        if (posterUrl != null) {
+                            _gameImages[game.id] = posterUrl
+                        }
+                    }
                 } catch (e: Exception) {
-                    // En cas d'erreur, laisser le poster à null
+                    Log.e("GamesViewModel", "Erreur lors du chargement du poster", e)
+                    // Ignorer les erreurs
                 }
+            }
+        }
+    }
+    
+    /**
+     * Insère un jeu de test directement dans la base de données
+     */
+    private fun insertTestGame() {
+        viewModelScope.launch {
+            Log.d("GamesViewModel", "Insertion d'un jeu de test directement")
+            
+            try {
+                // Créer un jeu de test
+                val testGame = Game(
+                    id = "test-game-${System.currentTimeMillis()}",
+                    showId = "test-show",
+                    title = "Jeu de Test",
+                    description = "Ceci est un jeu de test inséré directement",
+                    type = GameType.SMS,
+                    startDate = Date(),
+                    endDate = null,
+                    rules = "https://www.tf1.fr/tf1/test/reglement",
+                    imageUrl = null,
+                    participationMethod = "Envoyez SMS au 3680",
+                    reimbursementMethod = "Envoyez demande par courrier",
+                    reimbursementDeadline = 60,
+                    cost = 0.99,
+                    phoneNumber = "3680",
+                    refundAddress = "TF1 - Service Remboursement, 92100 Boulogne",
+                    isLiked = false
+                )
+                
+                // Créer un show de test
+                val testShow = Show(
+                    id = "test-show",
+                    title = "Émission de Test",
+                    channel = "TF1",
+                    description = "Ceci est une émission de test",
+                    imageUrl = null
+                )
+                
+                // Insérer le show
+                Log.d("GamesViewModel", "Insertion du show de test: ${testShow.title}")
+                showRepository.insertShow(testShow)
+                
+                // Insérer le jeu
+                Log.d("GamesViewModel", "Insertion du jeu de test: ${testGame.title}")
+                gameRepository.insertGame(testGame)
+                
+                // Charger les jeux
+                Log.d("GamesViewModel", "Chargement des jeux après insertion du jeu de test")
+                loadGames()
+            } catch (e: Exception) {
+                Log.e("GamesViewModel", "Erreur lors de l'insertion du jeu de test", e)
             }
         }
     }
@@ -458,61 +584,152 @@ class GamesViewModel @Inject constructor(
      */
     fun loadMockGames() {
         viewModelScope.launch {
-            val calendar = Calendar.getInstance()
+            Log.d("GamesViewModel", "Début du chargement des jeux de test")
             
-            // Jeu 1 - aujourd'hui
-            val game1Date = calendar.time
-            
-            // Jeu 2 - demain
-            calendar.add(Calendar.DAY_OF_MONTH, 1)
-            val game2Date = calendar.time
-            
-            // Jeu 3 - dans 2 jours
-            calendar.add(Calendar.DAY_OF_MONTH, 1)
-            val game3Date = calendar.time
-            
-            val mockGames = listOf(
-                Game(
-                    id = "1",
-                    showId = "koh-lanta",
-                    title = "Koh Lanta - Question du jour",
-                    description = "Répondez à la question du jour pour tenter de gagner 10 000€",
-                    type = GameType.SMS,
-                    startDate = game1Date,
-                    endDate = null,
-                    rules = "https://www.tf1.fr/tf1/koh-lanta/reglement",
-                    imageUrl = null,
-                    participationMethod = "Envoyez SMS au 3680",
-                    reimbursementMethod = "Envoyez demande par courrier",
-                    reimbursementDeadline = 60,
-                    cost = 0.99,
-                    phoneNumber = "3680",
-                    refundAddress = "TF1 - Service Remboursement, 92100 Boulogne",
-                    isLiked = false
-                ),
-                Game(
-                    id = "2",
-                    showId = "12-coups-midi",
-                    title = "Les 12 coups de midi - Question du jour",
-                    description = "Répondez à la question du jour pour tenter de gagner 5 000€",
-                    type = GameType.PHONE_CALL,
-                    startDate = game2Date,
-                    endDate = null,
-                    rules = "https://www.tf1.fr/tf1/12-coups-de-midi/reglement",
-                    imageUrl = null,
-                    participationMethod = "Appelez le 3280",
-                    reimbursementMethod = "Envoyez demande par courrier",
-                    reimbursementDeadline = 60,
-                    cost = 0.80,
-                    phoneNumber = "3280",
-                    refundAddress = "TF1 - Service Remboursement, 92100 Boulogne",
-                    isLiked = true
+            try {
+                val calendar = Calendar.getInstance()
+                
+                // Jeu 1 - aujourd'hui
+                val game1Date = calendar.time
+                
+                // Jeu 2 - demain
+                calendar.add(Calendar.DAY_OF_MONTH, 1)
+                val game2Date = calendar.time
+                
+                // Jeu 3 - dans 2 jours
+                calendar.add(Calendar.DAY_OF_MONTH, 1)
+                val game3Date = calendar.time
+                
+                // Créer les shows de test
+                val shows = listOf(
+                    Show(
+                        id = "koh-lanta",
+                        title = "Koh Lanta",
+                        channel = "TF1",
+                        description = "Émission de survie",
+                        imageUrl = null
+                    ),
+                    Show(
+                        id = "12-coups-midi",
+                        title = "Les 12 coups de midi",
+                        channel = "TF1",
+                        description = "Jeu télévisé",
+                        imageUrl = null
+                    ),
+                    Show(
+                        id = "the-voice",
+                        title = "The Voice",
+                        channel = "TF1",
+                        description = "Concours de chant",
+                        imageUrl = null
+                    )
                 )
-            )
-            
-            // Insérer les jeux dans la base de données
-            mockGames.forEach { game ->
-                gameRepository.insertGame(game)
+                
+                // Insérer les shows
+                Log.d("GamesViewModel", "Insertion de ${shows.size} shows de test")
+                shows.forEach { show ->
+                    try {
+                        Log.d("GamesViewModel", "Insertion du show de test: ${show.title}")
+                        showRepository.insertShow(show)
+                        Log.d("GamesViewModel", "Show de test inséré avec succès: ${show.title}")
+                    } catch (e: Exception) {
+                        Log.e("GamesViewModel", "Erreur lors de l'insertion du show de test: ${show.title}", e)
+                    }
+                }
+                
+                val mockGames = listOf(
+                    Game(
+                        id = "1",
+                        showId = "koh-lanta",
+                        title = "Koh Lanta - Question du jour",
+                        description = "Répondez à la question du jour pour tenter de gagner 10 000€",
+                        type = GameType.SMS,
+                        startDate = game1Date,
+                        endDate = null,
+                        rules = "https://www.tf1.fr/tf1/koh-lanta/reglement",
+                        imageUrl = null,
+                        participationMethod = "Envoyez SMS au 3680",
+                        reimbursementMethod = "Envoyez demande par courrier",
+                        reimbursementDeadline = 60,
+                        cost = 0.99,
+                        phoneNumber = "3680",
+                        refundAddress = "TF1 - Service Remboursement, 92100 Boulogne",
+                        isLiked = false
+                    ),
+                    Game(
+                        id = "2",
+                        showId = "12-coups-midi",
+                        title = "Les 12 coups de midi - Question du jour",
+                        description = "Répondez à la question du jour pour tenter de gagner 5 000€",
+                        type = GameType.PHONE_CALL,
+                        startDate = game2Date,
+                        endDate = null,
+                        rules = "https://www.tf1.fr/tf1/12-coups-de-midi/reglement",
+                        imageUrl = null,
+                        participationMethod = "Appelez le 3280",
+                        reimbursementMethod = "Envoyez demande par courrier",
+                        reimbursementDeadline = 60,
+                        cost = 0.80,
+                        phoneNumber = "3280",
+                        refundAddress = "TF1 - Service Remboursement, 92100 Boulogne",
+                        isLiked = true
+                    ),
+                    Game(
+                        id = "3",
+                        showId = "the-voice",
+                        title = "The Voice - Question du jour",
+                        description = "Répondez à la question du jour pour tenter de gagner 20 000€",
+                        type = GameType.MIXED,
+                        startDate = game3Date,
+                        endDate = null,
+                        rules = "https://www.tf1.fr/tf1/the-voice/reglement",
+                        imageUrl = null,
+                        participationMethod = "Envoyez SMS au 71414 ou appelez le 3680",
+                        reimbursementMethod = "Envoyez demande par courrier",
+                        reimbursementDeadline = 60,
+                        cost = 0.99,
+                        phoneNumber = "71414",
+                        refundAddress = "TF1 - Service Remboursement, 92100 Boulogne",
+                        isLiked = false
+                    )
+                )
+                
+                // Insérer les jeux dans la base de données
+                Log.d("GamesViewModel", "Insertion de ${mockGames.size} jeux de test")
+                mockGames.forEach { game ->
+                    try {
+                        Log.d("GamesViewModel", "Insertion du jeu de test: ${game.title}")
+                        gameRepository.insertGame(game)
+                        Log.d("GamesViewModel", "Jeu de test inséré avec succès: ${game.title}")
+                        
+                        // Générer une image pour ce jeu
+                        _gameImages[game.id] = MockImageService.getGameShowImageById(game.id)
+                    } catch (e: Exception) {
+                        Log.e("GamesViewModel", "Erreur lors de l'insertion du jeu de test: ${game.title}", e)
+                    }
+                }
+                
+                // Mettre à jour directement l'état UI avec les jeux de test
+                _uiState.update { state ->
+                    state.copy(
+                        games = mockGames,
+                        filteredGames = applyFilters(mockGames, state.searchQuery, state.filterLikedOnly, state.filterChannel),
+                        isLoading = false,
+                        successMessage = "${mockGames.size} jeux de test chargés"
+                    )
+                }
+                
+                // Recharger les jeux depuis la base de données
+                Log.d("GamesViewModel", "Rechargement des jeux depuis la base de données après insertion des jeux de test")
+                loadGames()
+            } catch (e: Exception) {
+                Log.e("GamesViewModel", "Erreur lors du chargement des jeux de test", e)
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        error = "Erreur lors du chargement des jeux de test: ${e.message}"
+                    )
+                }
             }
         }
     }

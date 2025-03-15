@@ -232,10 +232,17 @@ fun WebViewAuth(
                         onPageFinished(url)
                     }
                     
+                    @Deprecated("Deprecated in Java")
                     override fun onReceivedError(view: WebView, errorCode: Int, description: String, failingUrl: String) {
                         super.onReceivedError(view, errorCode, description, failingUrl)
                         Log.e("WebViewAuth", "Erreur: $description")
                         onError("Erreur lors du chargement de la page: $description")
+                    }
+                    
+                    override fun onReceivedError(view: WebView, request: android.webkit.WebResourceRequest, error: android.webkit.WebResourceError) {
+                        super.onReceivedError(view, request, error)
+                        Log.e("WebViewAuth", "Erreur: ${error.description}")
+                        onError("Erreur lors du chargement de la page: ${error.description}")
                     }
                 }
                 
