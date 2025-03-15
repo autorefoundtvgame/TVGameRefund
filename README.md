@@ -2,6 +2,10 @@
 
 Une application Android pour automatiser les demandes de remboursement des frais de participation aux jeux télévisés en France.
 
+## À propos du développement
+
+Ce projet a été entièrement développé avec l'aide d'Openhands et Claude (Anthropic), sans expérience préalable en développement Android. Il s'agit d'une démonstration de la façon dont l'IA peut aider à créer des applications complexes même sans connaissances techniques préalables dans le domaine spécifique.
+
 ## Contexte
 
 En France, la législation interdit de proposer des jeux de hasard à la télévision, à l'exception du loto officiel. Pour contourner cette limitation, les chaînes de télévision proposent le remboursement des frais de jeu à qui en fait la demande. Cependant, la procédure est souvent longue et complexe, ce qui décourage la plupart des participants.
@@ -103,6 +107,8 @@ git clone https://github.com/autorefoundtvgame/TVGameRefund.git
 ## Contribution
 
 Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou à soumettre une pull request.
+
+Si vous souhaitez contribuer, consultez notre fichier [CONTRIBUTING.md](CONTRIBUTING.md) pour plus d'informations sur le processus de contribution et les standards de code.
 
 ## Licence
 
