@@ -92,7 +92,7 @@ fun GamesScreen(
                             game = game,
                             onGameClick = onGameClick,
                             onLikeClick = { viewModel.toggleGameLike(game.id) },
-                            posterUrl = viewModel.showPosters[game.id]
+                            posterUrl = viewModel.gameImages[game.id] ?: viewModel.showPosters[game.id]
                         )
                     }
                 }

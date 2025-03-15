@@ -15,6 +15,9 @@ interface GameDao {
     @Query("SELECT * FROM games ORDER BY startDate DESC")
     fun getAllGames(): Flow<List<Game>>
     
+    @Query("SELECT * FROM games ORDER BY startDate DESC")
+    suspend fun getAllGamesSync(): List<Game>
+    
     @Query("SELECT * FROM games WHERE id = :id")
     suspend fun getGameById(id: String): Game?
     

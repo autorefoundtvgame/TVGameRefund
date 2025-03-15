@@ -26,21 +26,7 @@ data class Invoice(
     val updatedAt: Date = Date()
 )
 
-/**
- * Représente un frais de jeu sur une facture
- */
-@Entity(tableName = "invoice_game_fees")
-data class InvoiceGameFee(
-    @PrimaryKey
-    val id: String,
-    val invoiceId: String,
-    val gameId: String,
-    val amount: Double,
-    val date: Date,
-    val phoneNumber: String,
-    val createdAt: Date = Date(),
-    val updatedAt: Date = Date()
-)
+// La classe InvoiceGameFee a été déplacée dans son propre fichier InvoiceGameFee.kt
 
 /**
  * Statut d'une facture dans le processus de remboursement

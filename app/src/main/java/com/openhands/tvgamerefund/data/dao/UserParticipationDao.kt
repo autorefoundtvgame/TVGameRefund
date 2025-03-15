@@ -55,4 +55,7 @@ interface UserParticipationDao {
     
     @Query("SELECT * FROM user_participations WHERE userId = :userId AND gameId = :gameId LIMIT 1")
     suspend fun getParticipationByUserAndGame(userId: String, gameId: String): UserParticipation?
+    
+    @Query("SELECT * FROM user_participations ORDER BY participationDate DESC")
+    suspend fun getAllParticipationsSync(): List<UserParticipation>
 }

@@ -1,5 +1,6 @@
 package com.openhands.tvgamerefund.ui.screens.games.detail
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,8 +45,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.openhands.tvgamerefund.data.models.Game
 import com.openhands.tvgamerefund.data.models.GameType
+import com.openhands.tvgamerefund.data.models.UserVote
+import com.openhands.tvgamerefund.ui.navigation.Screen
+import com.openhands.tvgamerefund.ui.screens.games.detail.GameStatsSection
+import com.openhands.tvgamerefund.ui.screens.games.detail.RefundExperienceSection
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -54,6 +60,7 @@ import java.util.Locale
 @Composable
 fun GameDetailScreen(
     onNavigateBack: () -> Unit,
+    navController: NavController,
     viewModel: GameDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -134,7 +141,15 @@ fun GameDetailScreen(
                     onRefundExperienceSubmit = { success, days, comment ->
                         viewModel.submitRefundExperience(success, days, comment)
                     },
-                    onParticipationRecord = { viewModel.recordParticipation() }
+                    onParticipationRecord = { viewModel.recordParticipation() },
+                    onNavigateToQuestions = { gameId ->
+                        // Navigation vers l'écran des questions
+                        navController.navigate(Screen.GameQuestions.createRoute(
+                            gameId = gameId,
+                            showId = uiState.game?.showId ?: "",
+                            gameName = uiState.game?.title ?: ""
+                        ))
+                    }
                 )
             }
         }
@@ -149,7 +164,8 @@ fun GameDetailContent(
     hasParticipated: Boolean,
     onVoteSubmit: (Int) -> Unit,
     onRefundExperienceSubmit: (Boolean, Int, String) -> Unit,
-    onParticipationRecord: () -> Unit
+    onParticipationRecord: () -> Unit,
+    onNavigateToQuestions: (String) -> Unit
 ) {
     val scrollState = rememberScrollState()
     
@@ -331,6 +347,20 @@ fun GameDetailContent(
             userVote = userVote,
             onVoteSubmit = onVoteSubmit
         )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Bouton pour accéder aux questions du jeu
+        Button(
+            onClick = { 
+                // Navigation vers l'écran des questions
+                // Cette fonction sera passée en paramètre depuis NavGraph
+                onNavigateToQuestions(game.id)
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Voir les questions et voter")
+        }
         
         Spacer(modifier = Modifier.height(16.dp))
         

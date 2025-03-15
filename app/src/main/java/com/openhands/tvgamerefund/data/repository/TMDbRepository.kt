@@ -1,8 +1,10 @@
 package com.openhands.tvgamerefund.data.repository
 
 import android.util.Log
-import com.openhands.tvgamerefund.data.network.TMDbService
-import com.openhands.tvgamerefund.data.network.TMDbShow
+import com.openhands.tvgamerefund.BuildConfig
+import com.openhands.tvgamerefund.data.api.BackendApi
+import com.openhands.tvgamerefund.data.api.TMDbApi
+import com.openhands.tvgamerefund.data.models.TMDbSearchResponse.TMDbShow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -11,19 +13,54 @@ import javax.inject.Singleton
  */
 @Singleton
 class TMDbRepository @Inject constructor(
-    private val tmdbService: TMDbService
+    private val tmdbApi: TMDbApi,
+    private val backendApi: BackendApi
 ) {
-    // Clé API TMDb - Dans un vrai projet, cette clé devrait être stockée de manière sécurisée
-    // et non en dur dans le code
-    private val apiKey = "YOUR_TMDB_API_TOKEN_HERE" // Remplacez par votre token d'accès pour l'API v4
+    // Utilisation des clés API depuis BuildConfig
+    private val apiKey = BuildConfig.TMDB_API_KEY
+    private val accessToken = BuildConfig.TMDB_ACCESS_TOKEN
+    private val backendUrl = BuildConfig.BACKEND_URL
+    
+    // Base URL pour les images TMDb
+    private val imageBaseUrl = "https://image.tmdb.org/t/p"
+    
+    /**
+     * Vérifie si le backend est disponible
+     * @return true si le backend est disponible, false sinon
+     */
+    private suspend fun isBackendAvailable(): Boolean {
+        return try {
+            if (backendUrl.isEmpty()) return false
+            
+            val response = backendApi.checkStatus()
+            response["message"] == "API TVGameRefund opérationnelle"
+        } catch (e: Exception) {
+            Log.e(TAG, "Erreur lors de la vérification du backend", e)
+            false
+        }
+    }
     
     /**
      * Recherche une émission TV par son nom
+     * @param query Terme de recherche
+     * @return Liste d'émissions correspondantes
      */
     suspend fun searchShow(query: String): List<TMDbShow> {
         return try {
-            val response = tmdbService.searchTVShow("Bearer $apiKey", query)
-            response.results
+            // Essayer d'abord d'utiliser le backend si configuré et disponible
+            if (isBackendAvailable()) {
+                try {
+                    Log.d(TAG, "Utilisation du backend pour la recherche")
+                    backendApi.searchTvShows(query).results
+                } catch (e: Exception) {
+                    Log.e(TAG, "Erreur lors de l'appel au backend, utilisation de l'API directe", e)
+                    tmdbApi.searchTvShows("Bearer $accessToken", query).results
+                }
+            } else {
+                // Utiliser directement l'API TMDb
+                Log.d(TAG, "Utilisation directe de l'API TMDb pour la recherche")
+                tmdbApi.searchTvShows("Bearer $accessToken", query).results
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Erreur lors de la recherche d'émission", e)
             emptyList()
@@ -31,17 +68,48 @@ class TMDbRepository @Inject constructor(
     }
     
     /**
-     * Obtient l'URL de l'affiche d'une émission
+     * Obtient les détails d'une émission TV
+     * @param id Identifiant de l'émission
+     * @return Détails de l'émission ou null en cas d'erreur
      */
-    fun getPosterUrl(posterPath: String?): String? {
-        return posterPath?.let { "https://image.tmdb.org/t/p/w200$it" }
+    suspend fun getShowDetails(id: Int): TMDbShow? {
+        return try {
+            // Essayer d'abord d'utiliser le backend si configuré et disponible
+            if (isBackendAvailable()) {
+                try {
+                    Log.d(TAG, "Utilisation du backend pour les détails")
+                    backendApi.getTvShowDetails(id)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Erreur lors de l'appel au backend, utilisation de l'API directe", e)
+                    tmdbApi.getTvShowDetails("Bearer $accessToken", id)
+                }
+            } else {
+                // Utiliser directement l'API TMDb
+                Log.d(TAG, "Utilisation directe de l'API TMDb pour les détails")
+                tmdbApi.getTvShowDetails("Bearer $accessToken", id)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Erreur lors de la récupération des détails de l'émission", e)
+            null
+        }
     }
     
     /**
-     * Obtient l'URL de l'image de fond d'une émission
+     * Obtient l'URL complète d'une affiche
+     * @param posterPath Chemin relatif de l'affiche
+     * @return URL complète de l'affiche ou null si le chemin est null
+     */
+    fun getPosterUrl(posterPath: String?): String? {
+        return posterPath?.let { "$imageBaseUrl/w500$it" }
+    }
+    
+    /**
+     * Obtient l'URL complète d'une image de fond
+     * @param backdropPath Chemin relatif de l'image
+     * @return URL complète de l'image ou null si le chemin est null
      */
     fun getBackdropUrl(backdropPath: String?): String? {
-        return backdropPath?.let { "https://image.tmdb.org/t/p/w500$it" }
+        return backdropPath?.let { "$imageBaseUrl/w1280$it" }
     }
     
     companion object {

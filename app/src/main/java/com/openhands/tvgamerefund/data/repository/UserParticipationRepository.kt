@@ -43,4 +43,10 @@ class UserParticipationRepository @Inject constructor(
         
     suspend fun getParticipationByUserAndGame(userId: String, gameId: String): UserParticipation? =
         userParticipationDao.getParticipationByUserAndGame(userId, gameId)
+        
+    /**
+     * Récupère toutes les participations de manière synchrone
+     */
+    suspend fun getAllParticipationsSync(): List<UserParticipation> = 
+        userParticipationDao.getAllParticipationsSync()
 }

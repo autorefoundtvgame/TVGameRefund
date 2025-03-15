@@ -12,6 +12,11 @@ class GameRepository @Inject constructor(
 ) {
     fun getAllGames(): Flow<List<Game>> = gameDao.getAllGames()
     
+    /**
+     * Récupère tous les jeux de manière synchrone
+     */
+    suspend fun getAllGamesSync(): List<Game> = gameDao.getAllGamesSync()
+    
     fun getGamesByShow(showId: String): Flow<List<Game>> = gameDao.getGamesByShow(showId)
     
     fun getLikedGames(): Flow<List<Game>> = gameDao.getLikedGames()
@@ -36,5 +41,13 @@ class GameRepository @Inject constructor(
     suspend fun updateGameLikeStatus(id: String, isLiked: Boolean) {
         val game = gameDao.getGameById(id) ?: return
         gameDao.updateGame(game.copy(isLiked = isLiked))
+    }
+    
+    /**
+     * Récupère les jeux associés à un numéro de téléphone
+     */
+    suspend fun getGamesByPhoneNumber(phoneNumber: String): List<Game> {
+        // Implémentation temporaire - à remplacer par une requête réelle
+        return getAllGamesSync().filter { it.phoneNumber == phoneNumber }
     }
 }

@@ -3,9 +3,11 @@ package com.openhands.tvgamerefund.data.repository
 import android.content.Context
 import android.util.Log
 import com.openhands.tvgamerefund.data.models.Invoice
+import com.openhands.tvgamerefund.data.models.InvoiceGameFee
 import com.openhands.tvgamerefund.data.models.InvoiceStatus
 import com.openhands.tvgamerefund.data.network.FreeApiService
 import com.openhands.tvgamerefund.data.network.FreeAuthManager
+import com.openhands.tvgamerefund.data.pdf.PdfAnalyzer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -32,12 +34,16 @@ class InvoiceRepository @Inject constructor(
     private val operatorRepository: OperatorRepository,
     private val freeAuthManager: FreeAuthManager,
     private val freeApiService: FreeApiService,
-    private val okHttpClient: OkHttpClient
+    private val okHttpClient: OkHttpClient,
+    private val pdfAnalyzer: PdfAnalyzer
 ) {
     private val TAG = "InvoiceRepository"
     
     private val _invoices = MutableStateFlow<List<Invoice>>(emptyList())
     val invoices: Flow<List<Invoice>> = _invoices.asStateFlow()
+    
+    private val _invoiceGameFees = MutableStateFlow<Map<String, List<InvoiceGameFee>>>(emptyMap())
+    val invoiceGameFees: Flow<Map<String, List<InvoiceGameFee>>> = _invoiceGameFees.asStateFlow()
     
     /**
      * Récupère les factures d'un opérateur pour un numéro de téléphone donné
@@ -291,34 +297,29 @@ class InvoiceRepository @Inject constructor(
                     val pdfMatches = pdfUrlPattern.findAll(responseBody)
                     
                     pdfMatches.forEachIndexed { index, match ->
-                        val pdfUrl = match.groupValues[1]
-                        val invoiceId = index + 1
+                        val pdfUrl = "https://mobile.free.fr" + match.groupValues[1]
                         
-                        // Rechercher la date près du lien de la facture
-                        val context = responseBody.substring(
-                            maxOf(0, match.range.first - 100),
-                            minOf(responseBody.length, match.range.last + 100)
-                        )
-                        
-                        val dateMatch = datePattern.find(context)
+                        // Essayer de trouver la date correspondante
+                        val dateMatches = datePattern.findAll(responseBody)
+                        val dateMatch = dateMatches.elementAtOrNull(index)
                         
                         val date = if (dateMatch != null) {
-                            SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(dateMatch.groupValues[1]) ?: Date()
+                            try {
+                                SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(dateMatch.groupValues[1]) ?: Date()
+                            } catch (e: Exception) {
+                                Date()
+                            }
                         } else {
-                            // Si pas de date trouvée, utiliser la date actuelle moins 1 mois * numéro de facture
-                            val calendar = Calendar.getInstance()
-                            calendar.add(Calendar.MONTH, -invoiceId)
-                            calendar.time
+                            Date()
                         }
                         
-                        // Créer l'objet Invoice
                         val invoice = Invoice(
-                            id = "alt_$invoiceId",
+                            id = "html_$index",
                             operatorId = "FREE",
                             phoneNumber = phoneNumber,
                             date = date,
                             amount = 0.0, // Montant inconnu
-                            pdfUrl = if (pdfUrl.startsWith("http")) pdfUrl else "https://mobile.free.fr$pdfUrl",
+                            pdfUrl = pdfUrl,
                             status = InvoiceStatus.NEW,
                             hasGameFees = false
                         )
@@ -327,62 +328,48 @@ class InvoiceRepository @Inject constructor(
                     }
                 }
             } else {
-                Log.e(TAG, "Erreur lors de la récupération des factures: ${response.code}")
+                Log.e(TAG, "Échec de la récupération des factures: ${response.code}")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Exception lors de la récupération des factures", e)
+            Log.e(TAG, "Erreur lors de la récupération des factures", e)
         }
         
         return@withContext invoices
     }
     
     /**
-     * Méthode alternative pour récupérer les factures Free
+     * Crée des factures fictives pour les tests
+     * @param operatorId Identifiant de l'opérateur
+     * @param phoneNumber Numéro de téléphone
+     * @return Liste des factures fictives
      */
-    private suspend fun fetchAlternativeFreeInvoices(sessionCookie: String, phoneNumber: String): List<Invoice> = withContext(Dispatchers.IO) {
+    private fun createMockInvoices(operatorId: String, phoneNumber: String): List<Invoice> {
         val invoices = mutableListOf<Invoice>()
         
-        try {
-            // Essayer de récupérer la page des factures
-            val request = Request.Builder()
-                .url("https://mobile.free.fr/account/v2/mes-factures")
-                .header("Cookie", sessionCookie)
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-                .get()
-                .build()
-                
-            val response = okHttpClient.newCall(request).execute()
+        // Créer 6 factures mensuelles fictives
+        val calendar = Calendar.getInstance()
+        
+        for (i in 0 until 6) {
+            val date = calendar.time
             
-            if (response.isSuccessful) {
-                val responseBody = response.body?.string() ?: ""
-
-                // Rechercher les liens vers les factures PDF
-                val pdfLinkPattern = "href=\"([^\"]+\\.pdf)\"".toRegex()
-                val matches = pdfLinkPattern.findAll(responseBody)
-                
-                matches.forEachIndexed { index, match ->
-                    val pdfUrl = match.groupValues[1]
-                    
-                    // Créer l'objet Invoice
-                    val invoice = Invoice(
-                        id = "pdf_$index",
-                        operatorId = "FREE",
-                        phoneNumber = phoneNumber,
-                        date = Date(), // Date actuelle
-                        amount = 0.0, // Montant inconnu
-                        pdfUrl = if (pdfUrl.startsWith("http")) pdfUrl else "https://mobile.free.fr$pdfUrl",
-                        status = InvoiceStatus.NEW,
-                        hasGameFees = false
-                    )
-                    
-                    invoices.add(invoice)
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de la récupération alternative des factures", e)
+            val invoice = Invoice(
+                id = "mock_${operatorId}_${i}",
+                operatorId = operatorId,
+                phoneNumber = phoneNumber,
+                date = date,
+                amount = 19.99,
+                pdfUrl = "https://example.com/invoice_$i.pdf",
+                status = InvoiceStatus.NEW,
+                hasGameFees = i % 2 == 0 // Une facture sur deux contient des frais de jeu
+            )
+            
+            invoices.add(invoice)
+            
+            // Reculer d'un mois pour la prochaine facture
+            calendar.add(Calendar.MONTH, -1)
         }
         
-        return@withContext invoices
+        return invoices
     }
     
     /**
@@ -509,29 +496,51 @@ class InvoiceRepository @Inject constructor(
     }
     
     /**
-     * Analyse une facture pour identifier les frais de jeu
+     * Analyse une facture pour détecter les frais de jeu
      * @param invoice Facture à analyser
-     * @return Facture mise à jour avec les frais de jeu identifiés
+     * @return Liste des frais de jeu détectés
      */
-    suspend fun analyzeInvoice(invoice: Invoice): Result<Invoice> = withContext(Dispatchers.IO) {
+    suspend fun analyzeInvoice(invoice: Invoice): Result<List<InvoiceGameFee>> = withContext(Dispatchers.IO) {
         try {
-            // Pour l'instant, on simule l'analyse
-            val updatedInvoice = invoice.copy(
-                hasGameFees = true,
-                // Suppression du champ gameFees qui n'existe pas dans la classe Invoice
-                
-                status = InvoiceStatus.ANALYZED
-            )
-            
-            // Mettre à jour la liste des factures
-            val currentInvoices = _invoices.value.toMutableList()
-            val index = currentInvoices.indexOfFirst { it.id == invoice.id }
-            if (index != -1) {
-                currentInvoices[index] = updatedInvoice
-                _invoices.value = currentInvoices
+            // Vérifier si la facture a déjà été téléchargée
+            if (invoice.localPdfPath == null) {
+                // Télécharger la facture si nécessaire
+                val downloadResult = downloadInvoice(invoice)
+                if (downloadResult.isFailure) {
+                    return@withContext Result.failure(downloadResult.exceptionOrNull() ?: Exception("Échec du téléchargement de la facture"))
+                }
             }
             
-            return@withContext Result.success(updatedInvoice)
+            // Analyser la facture avec le PdfAnalyzer
+            val result = pdfAnalyzer.analyzeInvoice(invoice)
+            
+            // Mettre à jour le statut de la facture
+            if (result.isSuccess) {
+                val gameFees = result.getOrNull() ?: emptyList()
+                
+                // Mettre à jour la facture avec le statut ANALYZED et hasGameFees
+                val updatedInvoice = invoice.copy(
+                    status = InvoiceStatus.ANALYZED,
+                    hasGameFees = gameFees.isNotEmpty()
+                )
+                
+                // Mettre à jour la liste des factures
+                val currentInvoices = _invoices.value.toMutableList()
+                val index = currentInvoices.indexOfFirst { it.id == invoice.id }
+                if (index != -1) {
+                    currentInvoices[index] = updatedInvoice
+                    _invoices.value = currentInvoices
+                }
+                
+                // Mettre à jour la liste des frais de jeu
+                val currentGameFees = _invoiceGameFees.value.toMutableMap()
+                currentGameFees[invoice.id] = gameFees
+                _invoiceGameFees.value = currentGameFees
+                
+                return@withContext result
+            } else {
+                return@withContext result
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Erreur lors de l'analyse de la facture", e)
             return@withContext Result.failure(e)
@@ -539,50 +548,91 @@ class InvoiceRepository @Inject constructor(
     }
     
     /**
-     * Crée des factures fictives pour les tests
+     * Génère un PDF annoté avec les frais de jeu mis en évidence
+     * @param invoice Facture à annoter
+     * @return Chemin du fichier PDF annoté
      */
-    private fun createMockInvoices(operatorId: String, phoneNumber: String): List<Invoice> {
-        val invoices = mutableListOf<Invoice>()
-        
-        // Facture du mois en cours
-        val currentInvoice = Invoice(
-            id = "mock_1",
-            operatorId = operatorId,
-            phoneNumber = phoneNumber,
-            date = Date(),
-            amount = 19.99,
-            pdfUrl = "https://mobile.free.fr/account/v2/api/SI/invoice/2289514501",
-            status = InvoiceStatus.NEW
-        )
-        invoices.add(currentInvoice)
-        
-        // Facture du mois précédent
-        val calendar = Calendar.getInstance()
-        calendar.add(Calendar.MONTH, -1)
-        val previousInvoice = Invoice(
-            id = "mock_2",
-            operatorId = operatorId,
-            phoneNumber = phoneNumber,
-            date = calendar.time,
-            amount = 19.99,
-            pdfUrl = "https://mobile.free.fr/account/v2/api/SI/invoice/2289514500",
-            status = InvoiceStatus.NEW
-        )
-        invoices.add(previousInvoice)
-        
-        // Facture d'il y a 2 mois
-        calendar.add(Calendar.MONTH, -1)
-        val olderInvoice = Invoice(
-            id = "mock_3",
-            operatorId = operatorId,
-            phoneNumber = phoneNumber,
-            date = calendar.time,
-            amount = 19.99,
-            pdfUrl = "https://mobile.free.fr/account/v2/api/SI/invoice/2289514499",
-            status = InvoiceStatus.NEW
-        )
-        invoices.add(olderInvoice)
-        
-        return invoices
+    suspend fun generateAnnotatedPdf(invoice: Invoice): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            // Vérifier si la facture a déjà été analysée
+            val gameFees = _invoiceGameFees.value[invoice.id]
+            if (gameFees == null) {
+                // Analyser la facture si nécessaire
+                val analyzeResult = analyzeInvoice(invoice)
+                if (analyzeResult.isFailure) {
+                    return@withContext Result.failure(analyzeResult.exceptionOrNull() ?: Exception("Échec de l'analyse de la facture"))
+                }
+            }
+            
+            // Récupérer les frais de jeu
+            val fees = _invoiceGameFees.value[invoice.id] ?: emptyList()
+            
+            // Générer le PDF annoté
+            val result = pdfAnalyzer.generateAnnotatedPdf(invoice, fees)
+            
+            // Mettre à jour le statut de la facture
+            if (result.isSuccess) {
+                // Mettre à jour la facture avec le statut EDITED
+                val updatedInvoice = invoice.copy(
+                    status = InvoiceStatus.EDITED
+                )
+                
+                // Mettre à jour la liste des factures
+                val currentInvoices = _invoices.value.toMutableList()
+                val index = currentInvoices.indexOfFirst { it.id == invoice.id }
+                if (index != -1) {
+                    currentInvoices[index] = updatedInvoice
+                    _invoices.value = currentInvoices
+                }
+                
+                return@withContext result
+            } else {
+                return@withContext result
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Erreur lors de la génération du PDF annoté", e)
+            return@withContext Result.failure(e)
+        }
+    }
+    
+    /**
+     * Vérifie si de nouvelles factures sont disponibles
+     * @param operatorId Identifiant de l'opérateur
+     * @param phoneNumber Numéro de téléphone
+     * @return true si de nouvelles factures sont disponibles, false sinon
+     */
+    suspend fun checkForNewInvoices(operatorId: String, phoneNumber: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            // Récupérer les factures actuelles
+            val currentInvoices = _invoices.value
+            
+            // Récupérer les nouvelles factures
+            val result = fetchInvoices(operatorId, phoneNumber)
+            
+            if (result.isSuccess) {
+                val newInvoices = result.getOrNull() ?: emptyList()
+                
+                // Vérifier s'il y a de nouvelles factures
+                val hasNewInvoices = newInvoices.any { newInvoice ->
+                    currentInvoices.none { it.id == newInvoice.id }
+                }
+                
+                return@withContext Result.success(hasNewInvoices)
+            } else {
+                return@withContext Result.failure(result.exceptionOrNull() ?: Exception("Échec de la vérification des nouvelles factures"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Erreur lors de la vérification des nouvelles factures", e)
+            return@withContext Result.failure(e)
+        }
+    }
+    
+    /**
+     * Récupère les frais de jeu pour une facture
+     * @param invoiceId Identifiant de la facture
+     * @return Liste des frais de jeu
+     */
+    fun getGameFees(invoiceId: String): List<InvoiceGameFee> {
+        return _invoiceGameFees.value[invoiceId] ?: emptyList()
     }
 }

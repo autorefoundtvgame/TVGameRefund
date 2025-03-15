@@ -4,6 +4,39 @@ Ce document recense les erreurs rencontrées pendant le développement de l'appl
 
 ## Erreurs d'exécution récentes
 
+### 30. Duplication de OkHttpClient dans les modules Dagger
+
+**Erreur :**
+```
+C:\Users\Castle\Code\TVGameRefund\app\build\generated\hilt\component_sources\debug\com\openhands\tvgamerefund\TVGameRefundApp_HiltComponents.java:152: error: [Dagger/DuplicateBindings] okhttp3.OkHttpClient is bound multiple times:
+  public abstract static class SingletonC implements TVGameRefundApp_GeneratedInjector,
+                         ^
+          @Provides @Singleton okhttp3.OkHttpClient com.openhands.tvgamerefund.di.AppModule.provideOkHttpClient()
+          @Provides @Singleton okhttp3.OkHttpClient com.openhands.tvgamerefund.di.NetworkModule.provideOkHttpClient()
+```
+
+**Solution :**
+Suppression de la méthode `provideOkHttpClient()` dans `AppModule.kt` pour éviter la duplication avec celle de `NetworkModule.kt`. Nous avons conservé l'implémentation dans `NetworkModule` car elle inclut un intercepteur de logging pour le débogage.
+
+### 31. Méthode dépréciée dans WebViewAuthScreen
+
+**Avertissement :**
+```
+w: file:///C:/Users/Castle/Code/TVGameRefund/app/src/main/java/com/openhands/tvgamerefund/ui/screens/settings/WebViewAuthScreen.kt:236:31 'onReceivedError(WebView!, Int, String!, String!): Unit' is deprecated. Deprecated in Java
+```
+
+**Solution :**
+Ajout de l'annotation `@Deprecated` à la méthode existante et implémentation de la nouvelle méthode `onReceivedError` qui prend des paramètres différents :
+```kotlin
+override fun onReceivedError(view: WebView, request: android.webkit.WebResourceRequest, error: android.webkit.WebResourceError) {
+    super.onReceivedError(view, request, error)
+    Log.e("WebViewAuth", "Erreur: ${error.description}")
+    onError("Erreur lors du chargement de la page: ${error.description}")
+}
+```
+
+## Erreurs d'exécution récentes
+
 ### Bonnes pratiques générales
 
 1. **Toujours vérifier les valeurs nulles** avant de les utiliser, en particulier pour les dates et les montants.
@@ -244,6 +277,218 @@ Le compilateur Compose 1.5.6 nécessite spécifiquement Kotlin 1.9.21, mais nous
 2. Rétrogradation de KSP à la version 1.9.21-1.0.15
 3. Utilisation du compilateur Compose 1.5.4 compatible avec Kotlin 1.9.21
 4. Ajout de l'option de compilation `-P plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=true` pour ignorer les vérifications de compatibilité
+
+### 35. Incompatibilité entre Kotlin 1.9.21 et le compilateur Compose 1.5.1
+
+**Erreur :**
+```
+e: This version (1.5.1) of the Compose Compiler requires Kotlin version 1.9.0 but you appear to be using Kotlin version 1.9.21 which is not known to be compatible.
+```
+
+**Cause :**
+Le compilateur Compose 1.5.1 nécessite spécifiquement Kotlin 1.9.0, mais nous utilisons Kotlin 1.9.21.
+
+**Solution :**
+1. Mise à jour du compilateur Compose à la version 1.5.4 qui est plus compatible avec Kotlin 1.9.21
+2. Ajout de l'option de compilation pour supprimer la vérification de compatibilité :
+```kotlin
+kotlinOptions {
+    freeCompilerArgs += listOf(
+        "-P",
+        "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=1.9.21"
+    )
+}
+```
+3. Cette option permet d'utiliser le compilateur Compose même avec une version de Kotlin qui n'est pas officiellement supportée
+4. Maintien du compileSdk et targetSdk à 34 pour assurer la compatibilité avec les bibliothèques comme androidx.hilt:hilt-work:1.1.0
+5. Il est important de spécifier la version exacte de Kotlin (1.9.21) dans l'option suppressKotlinVersionCompatibilityCheck pour éviter les avertissements
+
+### 36. Problèmes de références non résolues pour les modèles de données
+
+**Erreur :**
+```
+e: Unresolved reference: TMDbSearchResponse
+e: Unresolved reference: ChannelRulesResponse
+e: Unresolved reference: GameRefundabilityResponse
+e: Unresolved reference: CalendarEvent
+e: Unresolved reference: GameQuestion
+```
+
+**Cause :**
+1. Fichiers de modèles dupliqués (TMDbSearchResponse.kt et TMDbModels.kt contenant la même classe)
+2. Imports manquants dans les fichiers qui utilisent ces modèles
+
+**Solution :**
+1. Suppression des fichiers dupliqués (comme TMDbSearchResponse.kt si TMDbModels.kt contient déjà la classe)
+2. Ajout des imports nécessaires dans les fichiers qui utilisent ces modèles :
+```kotlin
+import com.openhands.tvgamerefund.data.models.CalendarEvent
+import com.openhands.tvgamerefund.data.models.ChannelRulesResponse
+import com.openhands.tvgamerefund.data.models.GameQuestion
+import com.openhands.tvgamerefund.data.models.GameRefundabilityResponse
+import com.openhands.tvgamerefund.data.models.TMDbSearchResponse
+```
+3. Vérification de la cohérence des noms de champs entre les modèles et leur utilisation dans le code
+
+### 37. Redéclaration de classes et fonctions
+
+**Erreur :**
+```
+e: Redeclaration: InvoiceGameFee
+e: Conflicting overloads: public fun GameStatsSection(...)
+e: Conflicting overloads: public fun RefundExperienceSection(...)
+```
+
+**Cause :**
+1. La classe InvoiceGameFee est définie à la fois dans Invoice.kt et InvoiceGameFee.kt
+2. Les fonctions GameStatsSection et RefundExperienceSection sont définies à la fois dans GameDetailComponents.kt et dans leurs propres fichiers
+
+**Solution :**
+1. Suppression de la définition redondante de InvoiceGameFee dans Invoice.kt
+2. Pour les fonctions en conflit, plusieurs options :
+   - Supprimer l'une des définitions
+   - Renommer l'une des fonctions
+   - Déplacer les fonctions dans un seul fichier
+   - Utiliser des paramètres différents pour distinguer les surcharges
+
+### 38. Référence non résolue à absoluteValue
+
+**Erreur :**
+```
+e: Unresolved reference: absoluteValue
+```
+
+**Cause :**
+La propriété d'extension `absoluteValue` est utilisée sur un Int, mais elle n'est pas importée. Cette propriété fait partie du package `kotlin.math`.
+
+**Solution :**
+Remplacer `id.hashCode().absoluteValue` par `Math.abs(id.hashCode())` qui est disponible dans Java standard et ne nécessite pas d'import supplémentaire.
+
+### 39. Méthode getGamesByPhoneNumber manquante dans GameRepository
+
+**Erreur :**
+```
+e: Unresolved reference: getGamesByPhoneNumber
+```
+
+**Cause :**
+La méthode `getGamesByPhoneNumber` est appelée dans PdfAnalyzer.kt mais n'est pas définie dans GameRepository.
+
+**Solution :**
+Ajouter la méthode manquante dans GameRepository :
+```kotlin
+/**
+ * Récupère les jeux associés à un numéro de téléphone
+ */
+suspend fun getGamesByPhoneNumber(phoneNumber: String): List<Game> {
+    // Implémentation temporaire - à remplacer par une requête réelle
+    return getAllGamesSync().filter { it.phoneNumber == phoneNumber }
+}
+```
+Ou modifier le code dans PdfAnalyzer.kt pour utiliser une méthode existante.
+
+### 40. Fonctions composables dupliquées dans des fichiers séparés
+
+**Erreur :**
+```
+e: Conflicting overloads: public fun GameStatsSection(...)
+e: Conflicting overloads: public fun RefundExperienceSection(...)
+```
+
+**Cause :**
+Les fonctions composables GameStatsSection et RefundExperienceSection sont définies à la fois dans GameDetailComponents.kt et dans leurs propres fichiers (GameStatsSection.kt et RefundExperienceSection.kt).
+
+**Solution :**
+1. Supprimer les fichiers séparés (GameStatsSection.kt et RefundExperienceSection.kt) et conserver uniquement les implémentations dans GameDetailComponents.kt
+2. Ou renommer les fonctions dans l'un des fichiers pour éviter les conflits
+3. Ou déplacer toutes les implémentations dans un seul fichier
+
+### 44. Conflit de dépendances Hilt pour OkHttpClient
+
+**Erreur :**
+```
+error: [Dagger/DuplicateBindings] okhttp3.OkHttpClient is bound multiple times:
+  @Provides @Singleton okhttp3.OkHttpClient com.openhands.tvgamerefund.data.api.BackendModule.provideOkHttpClient()
+  @Provides @Singleton okhttp3.OkHttpClient com.openhands.tvgamerefund.di.NetworkModule.provideOkHttpClient()
+```
+
+**Cause :**
+OkHttpClient est fourni (provided) à deux endroits différents dans le code :
+1. Dans BackendModule.kt avec la méthode provideOkHttpClient
+2. Dans NetworkModule.kt avec une autre méthode provideOkHttpClient
+
+Cela crée une ambiguïté pour l'injecteur de dépendances Hilt qui ne sait pas quelle implémentation utiliser.
+
+**Solution :**
+Supprimer l'une des deux méthodes provideOkHttpClient. Dans ce cas, nous avons supprimé celle de BackendModule.kt car NetworkModule.kt est le module principal pour les dépendances réseau.
+
+### 43. Conflit de dépendances Hilt pour BackendApi
+
+**Erreur :**
+```
+error: [Dagger/DuplicateBindings] com.openhands.tvgamerefund.data.api.BackendApi is bound multiple times:
+  @Provides @Singleton com.openhands.tvgamerefund.data.api.BackendApi com.openhands.tvgamerefund.data.api.BackendModule.provideBackendApi(retrofit2.Retrofit)
+  @Provides @Singleton com.openhands.tvgamerefund.data.api.BackendApi com.openhands.tvgamerefund.di.NetworkModule.provideBackendApi(@Named("backendRetrofit") retrofit2.Retrofit)
+```
+
+**Cause :**
+L'API BackendApi est fournie (provided) à deux endroits différents dans le code :
+1. Dans BackendModule.kt avec la méthode provideBackendApi
+2. Dans NetworkModule.kt avec une autre méthode provideBackendApi
+
+Cela crée une ambiguïté pour l'injecteur de dépendances Hilt qui ne sait pas quelle implémentation utiliser.
+
+**Solution :**
+Supprimer l'une des deux méthodes provideBackendApi. Dans ce cas, nous avons supprimé celle de BackendModule.kt car celle de NetworkModule.kt utilise un Retrofit nommé spécifiquement pour le backend.
+
+### 42. Import incorrect de KeyboardOptions
+
+**Erreur :**
+```
+e: Unresolved reference: KeyboardOptions
+```
+
+**Cause :**
+La classe KeyboardOptions est importée depuis le mauvais package. Elle se trouve dans `androidx.compose.foundation.text.KeyboardOptions` et non dans `androidx.compose.ui.text.input.KeyboardOptions`.
+
+**Solution :**
+Corriger l'import en remplaçant :
+```kotlin
+import androidx.compose.ui.text.input.KeyboardOptions
+```
+par :
+```kotlin
+import androidx.compose.foundation.text.KeyboardOptions
+```
+
+### 41. Problème avec firstOrNull dans ProfileViewModel
+
+**Erreur :**
+```
+e: Not enough information to infer type variable T
+e: Unresolved reference: it
+```
+
+**Cause :**
+Dans ProfileViewModel.kt, la méthode `firstOrNull()` est appelée sur un Flow sans collecter les valeurs d'abord, et il y a une confusion entre le Flow et son contenu.
+
+**Solution :**
+1. Créer une méthode synchrone dans le repository pour récupérer directement la liste sans passer par un Flow :
+```kotlin
+// Dans UserParticipationDao.kt
+@Query("SELECT * FROM user_participations ORDER BY participationDate DESC")
+suspend fun getAllParticipationsSync(): List<UserParticipation>
+
+// Dans UserParticipationRepository.kt
+suspend fun getAllParticipationsSync(): List<UserParticipation> = 
+    userParticipationDao.getAllParticipationsSync()
+
+// Dans ProfileViewModel.kt
+val participationsList = userParticipationRepository.getAllParticipationsSync()
+val participationsCount = participationsList.size
+val totalRefundAmount = participationsList.sumOf { it.amount }
+```
+2. Cette approche évite les problèmes de type avec les Flows et permet d'accéder directement aux données
 
 ### 20. Problème avec l'option suppressKotlinVersionCompatibilityCheck
 

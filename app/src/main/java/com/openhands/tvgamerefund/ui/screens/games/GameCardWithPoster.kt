@@ -3,9 +3,12 @@ package com.openhands.tvgamerefund.ui.screens.games
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -36,7 +39,9 @@ fun GameCardWithPoster(
         onClick = { onGameClick(game.id) },
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
             modifier = Modifier
@@ -46,9 +51,12 @@ fun GameCardWithPoster(
             // Image de l'émission
             Box(
                 modifier = Modifier
-                    .width(100.dp)
-                    .fillMaxHeight()
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .width(120.dp)
+                    .height(160.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp)
+                    )
             ) {
                 if (posterUrl != null) {
                     Image(
@@ -105,50 +113,105 @@ fun GameCardWithPoster(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // Chaîne TV avec badge
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 4.dp)
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
                         Text(
                             text = game.channel,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        
-                        Text(
-                            text = if (game.airDate != null) {
-                                "Diffusion : ${dateFormat.format(game.airDate)}"
-                            } else {
-                                "Diffusion : Non programmée"
-                            },
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                     
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.End
+                    // Type de jeu (SMS, Appel, etc.)
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier.padding(end = 8.dp)
                     ) {
                         Text(
-                            text = "Coût : ${game.cost}€",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        
-                        Text(
-                            text = "Numéro : ${game.phoneNumber}",
-                            style = MaterialTheme.typography.bodyMedium
+                            text = game.type.name,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                Button(
-                    onClick = { onGameClick(game.id) },
-                    modifier = Modifier.align(Alignment.End)
+                // Date de diffusion
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 2.dp)
                 ) {
-                    Text("Voir détails")
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (game.startDate != null) {
+                            dateFormat.format(game.startDate)
+                        } else {
+                            "Non programmé"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                // Coût et numéro
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 2.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${game.phoneNumber} - ${String.format("%.2f", game.cost)}€",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Délai de remboursement
+                    Text(
+                        text = "Remboursement : ${game.reimbursementDeadline} jours",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    
+                    // Bouton de détails
+                    Button(
+                        onClick = { onGameClick(game.id) },
+                        modifier = Modifier,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Voir détails")
+                    }
                 }
             }
         }
