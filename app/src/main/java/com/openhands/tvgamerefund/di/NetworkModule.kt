@@ -53,8 +53,8 @@ object NetworkModule {
     @Singleton
     @Named("backendRetrofit")
     fun provideBackendRetrofit(okHttpClient: OkHttpClient): Retrofit {
-        val backendUrl = BuildConfig.BACKEND_URL.takeIf { it.isNotEmpty() } 
-            ?: "https://api.yomazone.com/"
+        // Utiliser directement l'URL de l'API yomazone.com
+        val backendUrl = "https://api.yomazone.com/"
         
         return Retrofit.Builder()
             .baseUrl(backendUrl)

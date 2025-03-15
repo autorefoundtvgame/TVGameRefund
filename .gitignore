@@ -33,3 +33,16 @@ firebase_credentials.json
 
 # Fichiers de configuration spécifiques à l'utilisateur
 /app/src/main/java/com/openhands/tvgamerefund/config/Credentials.kt
+
+# Fichiers volumineux
+commandlinetools-linux-9477386_latest.zip
+*.zip
+/android-sdk/
+/android-sdk/**
+*.pack
+*.bin
+*.jar
+*.dex
+*.apk
+*.so
+*.png
