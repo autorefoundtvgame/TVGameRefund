@@ -148,7 +148,11 @@ fun GameCard(
             }
             
             Text(
-                text = "Date: ${SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(game.airDate)}",
+                text = if (game.airDate != null) {
+                    "Date: ${SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(game.airDate)}"
+                } else {
+                    "Date: Non programmée"
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

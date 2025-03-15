@@ -73,17 +73,18 @@ fun TVGameRefundNavigation() {
                 )
             }
             
-            // TODO: Implement game detail screen
             composable(
                 route = Screen.GameDetail.route,
                 arguments = listOf(
                     navArgument("gameId") { type = NavType.StringType }
                 )
-            ) {
-                // Temporary placeholder
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Text("Game Detail Screen - Coming Soon")
-                }
+            ) { backStackEntry ->
+                val gameId = backStackEntry.arguments?.getString("gameId") ?: ""
+                com.openhands.tvgamerefund.ui.screens.games.detail.GameDetailScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
             }
             
             composable(Screen.Participations.route) {

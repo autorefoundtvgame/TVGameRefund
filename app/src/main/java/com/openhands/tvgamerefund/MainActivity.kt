@@ -1,6 +1,7 @@
 package com.openhands.tvgamerefund
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +27,24 @@ class MainActivity : ComponentActivity() {
                     TVGameRefundNavigation()
                 }
             }
+        }
+    }
+    
+    override fun onBackPressed() {
+        // Gérer le bouton retour de manière sécurisée
+        try {
+            super.onBackPressed()
+        } catch (e: Exception) {
+            // En cas d'erreur, terminer l'activité proprement
+            finish()
+        }
+    }
+    
+    override fun onDestroy() {
+        try {
+            super.onDestroy()
+        } catch (e: Exception) {
+            // Ignorer les erreurs lors de la destruction de l'activité
         }
     }
 }

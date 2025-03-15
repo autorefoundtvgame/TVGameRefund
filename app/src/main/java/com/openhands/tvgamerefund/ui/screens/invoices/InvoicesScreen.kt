@@ -237,7 +237,11 @@ fun InvoiceCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Facture du ${dateFormat.format(invoice.date)}",
+                    text = if (invoice.date != null) {
+                        "Facture du ${dateFormat.format(invoice.date)}"
+                    } else {
+                        "Facture"
+                    },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -248,7 +252,11 @@ fun InvoiceCard(
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = "Montant : ${numberFormat.format(invoice.amount)}",
+                text = "Montant : ${if (invoice.amount != null) {
+                    numberFormat.format(invoice.amount)
+                } else {
+                    "Non disponible"
+                }}",
                 style = MaterialTheme.typography.bodyMedium
             )
             
@@ -342,7 +350,11 @@ fun InvoiceDetailScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Facture du ${dateFormat.format(invoice.date)}",
+                        text = if (invoice.date != null) {
+                            "Facture du ${dateFormat.format(invoice.date)}"
+                        } else {
+                            "Facture"
+                        },
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -355,7 +367,11 @@ fun InvoiceDetailScreen(
                 InfoRow(label = "Identifiant", value = invoice.id)
                 InfoRow(label = "Opérateur", value = invoice.operatorId)
                 InfoRow(label = "Numéro", value = invoice.phoneNumber)
-                InfoRow(label = "Montant", value = numberFormat.format(invoice.amount))
+                InfoRow(label = "Montant", value = if (invoice.amount != null) {
+                    numberFormat.format(invoice.amount)
+                } else {
+                    "Non disponible"
+                })
                 
                 if (invoice.localPdfPath != null) {
                     InfoRow(label = "Fichier local", value = invoice.localPdfPath)

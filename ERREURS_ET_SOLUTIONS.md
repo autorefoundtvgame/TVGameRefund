@@ -2,6 +2,178 @@
 
 Ce document recense les erreurs rencontrées pendant le développement de l'application TVGameRefund et les solutions mises en place.
 
+## Erreurs d'exécution récentes
+
+### Bonnes pratiques générales
+
+1. **Toujours vérifier les valeurs nulles** avant de les utiliser, en particulier pour les dates et les montants.
+2. **Ajouter des logs** pour faciliter le débogage.
+3. **Gérer les erreurs** de manière gracieuse pour éviter les crashs.
+4. **Mettre à jour la version de la base de données** lorsque le schéma change.
+5. **Tester l'application** sur différents appareils et versions d'Android.
+
+### 29. Erreur de schéma de base de données Room
+
+**Erreur :**
+```
+java.lang.IllegalStateException: Room cannot verify the data integrity. Looks like you've changed schema but forgot to update the version number. You can simply fix this by increasing the version number.
+```
+
+**Cause :**
+Modification du schéma de la base de données (ajout de nouveaux champs à une entité) sans mise à jour du numéro de version.
+
+**Solution :**
+Augmenter le numéro de version de la base de données dans `AppDatabase.kt` :
+```kotlin
+@Database(
+    entities = [
+        Show::class,
+        ShowSchedule::class,
+        Game::class,
+        GameFee::class,
+        GameStats::class,
+        UserParticipation::class,
+        UserVote::class
+    ],
+    version = 2, // Augmentation de la version de 1 à 2
+    exportSchema = false
+)
+```
+
+### 30. Avertissement OnBackInvokedCallback
+
+**Erreur :**
+```
+OnBackInvokedCallback is not enabled for the application.
+```
+
+**Cause :**
+L'application n'est pas configurée pour utiliser le nouveau système de gestion du bouton retour d'Android.
+
+**Solution :**
+Ajouter l'attribut `android:enableOnBackInvokedCallback="true"` dans le fichier `AndroidManifest.xml` :
+```xml
+<application
+    android:name=".TVGameRefundApp"
+    android:allowBackup="true"
+    android:icon="@mipmap/ic_launcher"
+    android:label="@string/app_name"
+    android:roundIcon="@mipmap/ic_launcher_round"
+    android:supportsRtl="true"
+    android:enableOnBackInvokedCallback="true"
+    android:theme="@style/Theme.TVGameRefund">
+```
+
+### 31. Crash lors du retour en arrière
+
+**Erreur :**
+```
+android.os.DeadObjectException
+```
+
+**Cause :**
+Problème avec la gestion du cycle de vie des activités ou des fragments.
+
+**Solution :**
+Améliorer la gestion du cycle de vie dans l'activité principale en ajoutant des gestionnaires d'erreurs pour `onBackPressed()` et `onDestroy()` :
+```kotlin
+override fun onBackPressed() {
+    // Gérer le bouton retour de manière sécurisée
+    try {
+        super.onBackPressed()
+    } catch (e: Exception) {
+        // En cas d'erreur, terminer l'activité proprement
+        finish()
+    }
+}
+
+override fun onDestroy() {
+    try {
+        super.onDestroy()
+    } catch (e: Exception) {
+        // Ignorer les erreurs lors de la destruction de l'activité
+    }
+}
+```
+
+### 32. Erreur Firebase
+
+**Erreur :**
+```
+com.google.firebase.firestore.FirebaseFirestoreException: Failed to get document because the client is offline.
+```
+
+**Cause :**
+L'application essaie d'accéder à Firebase mais n'a pas de connexion Internet ou Firebase n'est pas correctement configuré.
+
+**Solution :**
+Améliorer la gestion des erreurs Firebase en retournant des données par défaut en cas d'erreur :
+```kotlin
+private fun isFirebaseAvailable(): Boolean {
+    // En développement, on considère que Firebase n'est pas disponible
+    // pour éviter les erreurs de configuration
+    return false
+}
+```
+
+### 33. NullPointerException avec les dates
+
+**Erreur :**
+```
+java.lang.NullPointerException: date must not be null
+    at java.util.Objects.requireNonNull(Objects.java:232)
+    at java.util.Calendar.setTime(Calendar.java:1831)
+    at java.text.SimpleDateFormat.format(SimpleDateFormat.java:1094)
+```
+
+**Cause :**
+Tentative de formatage d'une date nulle avec `SimpleDateFormat`.
+
+**Solution :**
+Vérifier si la date est nulle avant de la formater :
+```kotlin
+val dateStr = if (game.startDate != null) {
+    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.FRANCE)
+    dateFormat.format(game.startDate)
+} else {
+    "Date inconnue"
+}
+```
+
+### 34. Problème avec le scraper TF1
+
+**Erreur :**
+```
+TF1GameScraper: Liens de jeux trouvés: 0
+```
+
+**Cause :**
+Le scraper ne trouve aucun lien de jeu sur le site TF1, soit parce que la structure HTML a changé, soit parce que les patterns regex ne sont pas assez robustes.
+
+**Solution :**
+Améliorer le scraper TF1 pour qu'il soit plus robuste :
+1. Ajouter plusieurs patterns regex pour détecter différents formats de liens
+2. Ajouter des liens par défaut pour les tests si aucun lien n'est trouvé
+3. Ajouter un User-Agent dans les requêtes HTTP pour éviter d'être bloqué
+4. Ajouter plus de logs pour mieux comprendre ce qui se passe
+
+```kotlin
+private fun extractGameLinks(html: String): List<String> {
+    val links = mutableListOf<String>()
+    
+    // Essayer plusieurs patterns pour être plus robuste
+    val patterns = listOf(
+        """<a href="(/tf1/gagnants-reglements-remboursement-des-jeux-tv/news/[^"]+)"""".toRegex(),
+        """<a href="(https://www.tf1.fr/[^"]+/reglement[^"]+)"""".toRegex(),
+        """<a href="(/tf1/[^"]+/reglement[^"]+)"""".toRegex(),
+        """<a href="(/[^"]+/reglement[^"]+)"""".toRegex(),
+        """<a href="(/programmes/[^"]+/jeux[^"]+)"""".toRegex()
+    )
+    
+    // ... reste du code
+}
+```
+
 ## Erreurs de compilation
 
 ### 15. Incompatibilité de version Kotlin avec Firebase

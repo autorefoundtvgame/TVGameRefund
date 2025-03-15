@@ -126,6 +126,9 @@ dependencies {
 
     // PDF handling
     implementation("com.tom-roush:pdfbox-android:2.0.27.0")
+    
+    // Coil pour le chargement d'images
+    implementation("io.coil-kt:coil-compose:2.4.0")
 
     // Security
     implementation("androidx.security:security-crypto:1.1.0-alpha06")

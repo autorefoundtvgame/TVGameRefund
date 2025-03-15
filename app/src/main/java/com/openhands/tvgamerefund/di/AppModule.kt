@@ -3,6 +3,7 @@ package com.openhands.tvgamerefund.di
 import android.content.Context
 import com.openhands.tvgamerefund.data.network.FreeApiService
 import com.openhands.tvgamerefund.data.network.FreeAuthManager
+import com.openhands.tvgamerefund.data.network.TMDbService
 import com.openhands.tvgamerefund.data.scraper.JsoupTF1GameScraper
 import com.openhands.tvgamerefund.data.scraper.TF1GameScraper
 import dagger.Module
@@ -61,5 +62,16 @@ object AppModule {
     @Singleton
     fun provideJsoupTF1GameScraper(): com.openhands.tvgamerefund.data.scraper.JsoupTF1GameScraper {
         return com.openhands.tvgamerefund.data.scraper.JsoupTF1GameScraper()
+    }
+    
+    @Provides
+    @Singleton
+    fun provideTMDbService(okHttpClient: OkHttpClient): TMDbService {
+        return Retrofit.Builder()
+            .baseUrl("https://api.themoviedb.org/3/")
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(TMDbService::class.java)
     }
 }

@@ -122,7 +122,14 @@ private fun GameDetail(
         Spacer(modifier = Modifier.height(16.dp))
 
         InfoSection(title = "Chaîne", content = game.channel)
-        InfoSection(title = "Date de diffusion", content = dateFormat.format(game.airDate))
+        InfoSection(
+            title = "Date de diffusion", 
+            content = if (game.airDate != null) {
+                dateFormat.format(game.airDate)
+            } else {
+                "Non programmée"
+            }
+        )
         InfoSection(title = "Type de jeu", content = game.gameType)
         InfoSection(title = "Coût", content = "${game.cost}€")
         InfoSection(title = "Numéro", content = game.phoneNumber)

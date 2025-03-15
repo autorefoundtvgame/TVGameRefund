@@ -88,10 +88,11 @@ fun GamesScreen(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(filteredGames) { game ->
-                        GameCard(
+                        GameCardWithPoster(
                             game = game,
                             onGameClick = onGameClick,
-                            onLikeClick = { viewModel.toggleGameLike(game.id) }
+                            onLikeClick = { viewModel.toggleGameLike(game.id) },
+                            posterUrl = viewModel.showPosters[game.id]
                         )
                     }
                 }
@@ -196,7 +197,11 @@ fun GameCard(
                     )
                     
                     Text(
-                        text = "Diffusion : ${dateFormat.format(game.airDate)}",
+                        text = if (game.airDate != null) {
+                            "Diffusion : ${dateFormat.format(game.airDate)}"
+                        } else {
+                            "Diffusion : Non programmée"
+                        },
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }

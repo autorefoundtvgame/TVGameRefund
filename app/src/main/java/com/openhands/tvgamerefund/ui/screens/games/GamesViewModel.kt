@@ -1,5 +1,6 @@
 package com.openhands.tvgamerefund.ui.screens.games
 
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.openhands.tvgamerefund.data.models.Game
@@ -9,6 +10,7 @@ import com.openhands.tvgamerefund.data.models.UserVote
 import com.openhands.tvgamerefund.data.repository.FirebaseVoteRepository
 import com.openhands.tvgamerefund.data.repository.GameRepository
 import com.openhands.tvgamerefund.data.repository.ShowRepository
+import com.openhands.tvgamerefund.data.repository.TMDbRepository
 import com.openhands.tvgamerefund.data.repository.UserParticipationRepository
 import com.openhands.tvgamerefund.data.scraper.TF1GameScraper
 import com.openhands.tvgamerefund.data.service.ReminderManager
@@ -45,11 +47,16 @@ class GamesViewModel @Inject constructor(
     private val userParticipationRepository: UserParticipationRepository,
     private val firebaseVoteRepository: FirebaseVoteRepository,
     private val tf1GameScraper: TF1GameScraper,
-    private val reminderManager: ReminderManager
+    private val reminderManager: ReminderManager,
+    private val tmdbRepository: TMDbRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(GamesUiState())
     val uiState: StateFlow<GamesUiState> = _uiState.asStateFlow()
+    
+    // Map pour stocker les URLs des posters des émissions
+    private val _showPosters = mutableStateMapOf<String, String?>()
+    val showPosters: Map<String, String?> = _showPosters
     
     init {
         loadGames()
@@ -75,6 +82,11 @@ class GamesViewModel @Inject constructor(
                     
                     // Charger les statistiques pour chaque jeu
                     loadGameStats(games)
+                    
+                    // Charger les posters pour chaque jeu
+                    games.forEach { game ->
+                        loadShowPoster(game)
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.update { 
@@ -418,6 +430,27 @@ class GamesViewModel @Inject constructor(
      */
     fun clearErrorMessage() {
         _uiState.update { it.copy(error = null) }
+    }
+    
+    /**
+     * Charge le poster d'une émission depuis TMDb
+     */
+    fun loadShowPoster(game: Game) {
+        viewModelScope.launch {
+            if (!_showPosters.containsKey(game.id)) {
+                // Définir temporairement à null pour éviter des requêtes multiples
+                _showPosters[game.id] = null
+                
+                try {
+                    // Rechercher l'émission sur TMDb
+                    val shows = tmdbRepository.searchShow(game.showName)
+                    val posterPath = shows.firstOrNull()?.poster_path
+                    _showPosters[game.id] = tmdbRepository.getPosterUrl(posterPath)
+                } catch (e: Exception) {
+                    // En cas d'erreur, laisser le poster à null
+                }
+            }
+        }
     }
     
     /**
