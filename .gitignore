@@ -46,3 +46,8 @@ commandlinetools-linux-9477386_latest.zip
 *.apk
 *.so
 *.png
+
+# Fichiers de documentation sensibles
+ERREURS_ET_SOLUTIONS.md
+CORRECTIONS.md
+FIREBASE_GUIDE.md
