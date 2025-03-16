@@ -26,7 +26,7 @@ import javax.inject.Singleton
 object BackendModule {
     
     // URL du serveur backend
-    private const val BASE_URL = "https://api.yomazone.com/"
+    private const val BASE_URL = "https://api.example.com/"
     
     // La méthode provideOkHttpClient a été déplacée dans NetworkModule pour éviter les conflits
     

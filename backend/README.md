@@ -6,7 +6,7 @@ Ce backend sert de proxy pour les requêtes à l'API TMDb et fournit une API pou
 
 1. Connectez-vous à votre serveur via SSH :
    ```
-   ssh chapelier@yomazone.com
+   ssh user@example.com
    ```
 
 2. Créez un répertoire pour le backend :
@@ -57,7 +57,7 @@ Vous devriez recevoir une réponse JSON : `{"message":"API TVGameRefund opérati
 
 Dans le fichier `local.properties` de l'application Android, mettez à jour l'URL du backend :
 ```
-backend.url=http://yomazone.com:3000
+backend.url=http://example.com:3000
 ```
 
 ## Endpoints API
