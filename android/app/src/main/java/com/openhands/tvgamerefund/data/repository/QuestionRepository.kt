@@ -29,7 +29,7 @@ class QuestionRepository @Inject constructor(
      */
     private suspend fun isBackendAvailable(): Boolean {
         return try {
-            // Ne pas vérifier si backendUrl est vide, car nous utilisons directement api.yomazone.com
+            // Ne pas vérifier si backendUrl est vide, car nous utilisons directement l'URL du backend
             val response = backendApi.checkStatus()
             response["message"] == "API TVGameRefund opérationnelle"
         } catch (e: Exception) {

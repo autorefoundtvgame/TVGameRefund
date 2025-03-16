@@ -1,7 +1,7 @@
 # Commandes pour mettre à jour le backend sur le serveur
 
 # 1. Se connecter au serveur
-ssh chapelier@yomazone.com
+ssh user@example.com
 
 # 2. Aller dans le répertoire du backend
 cd ~/tvgamerefund-backend
@@ -18,29 +18,29 @@ mkdir -p models controllers scrapers config logs
 
 # 6. Copier les nouveaux fichiers
 # Modèles
-scp /workspace/backend-setup/models/CalendarEvent.js chapelier@yomazone.com:~/tvgamerefund-backend/models/
-scp /workspace/backend-setup/models/GameQuestion.js chapelier@yomazone.com:~/tvgamerefund-backend/models/
-scp /workspace/backend-setup/models/Game.js chapelier@yomazone.com:~/tvgamerefund-backend/models/
+scp /workspace/backend-setup/models/CalendarEvent.js user@example.com:~/tvgamerefund-backend/models/
+scp /workspace/backend-setup/models/GameQuestion.js user@example.com:~/tvgamerefund-backend/models/
+scp /workspace/backend-setup/models/Game.js user@example.com:~/tvgamerefund-backend/models/
 
 # Contrôleurs
-scp /workspace/backend-setup/controllers/calendarController.js chapelier@yomazone.com:~/tvgamerefund-backend/controllers/
-scp /workspace/backend-setup/controllers/questionController.js chapelier@yomazone.com:~/tvgamerefund-backend/controllers/
-scp /workspace/backend-setup/controllers/gameController.js chapelier@yomazone.com:~/tvgamerefund-backend/controllers/
-scp /workspace/backend-setup/controllers/tmdbController.js chapelier@yomazone.com:~/tvgamerefund-backend/controllers/
+scp /workspace/backend-setup/controllers/calendarController.js user@example.com:~/tvgamerefund-backend/controllers/
+scp /workspace/backend-setup/controllers/questionController.js user@example.com:~/tvgamerefund-backend/controllers/
+scp /workspace/backend-setup/controllers/gameController.js user@example.com:~/tvgamerefund-backend/controllers/
+scp /workspace/backend-setup/controllers/tmdbController.js user@example.com:~/tvgamerefund-backend/controllers/
 
 # Scrapers
-scp /workspace/backend-setup/scrapers/index.js chapelier@yomazone.com:~/tvgamerefund-backend/scrapers/
-scp /workspace/backend-setup/scrapers/tf1Scraper.js chapelier@yomazone.com:~/tvgamerefund-backend/scrapers/
-scp /workspace/backend-setup/scrapers/m6Scraper.js chapelier@yomazone.com:~/tvgamerefund-backend/scrapers/
-scp /workspace/backend-setup/scrapers/tf1GameScraper.js chapelier@yomazone.com:~/tvgamerefund-backend/scrapers/
-scp /workspace/backend-setup/scrapers/m6GameScraper.js chapelier@yomazone.com:~/tvgamerefund-backend/scrapers/
+scp /workspace/backend-setup/scrapers/index.js user@example.com:~/tvgamerefund-backend/scrapers/
+scp /workspace/backend-setup/scrapers/tf1Scraper.js user@example.com:~/tvgamerefund-backend/scrapers/
+scp /workspace/backend-setup/scrapers/m6Scraper.js user@example.com:~/tvgamerefund-backend/scrapers/
+scp /workspace/backend-setup/scrapers/tf1GameScraper.js user@example.com:~/tvgamerefund-backend/scrapers/
+scp /workspace/backend-setup/scrapers/m6GameScraper.js user@example.com:~/tvgamerefund-backend/scrapers/
 
 # Fichiers de configuration
-scp /workspace/backend-setup/config.js chapelier@yomazone.com:~/tvgamerefund-backend/
-scp /workspace/backend-setup/package.json chapelier@yomazone.com:~/tvgamerefund-backend/
+scp /workspace/backend-setup/config.js user@example.com:~/tvgamerefund-backend/
+scp /workspace/backend-setup/package.json user@example.com:~/tvgamerefund-backend/
 
 # 7. Mettre à jour le fichier server.js
-scp /workspace/backend-setup/server.js chapelier@yomazone.com:~/tvgamerefund-backend/
+scp /workspace/backend-setup/server.js user@example.com:~/tvgamerefund-backend/
 
 # 8. Installer les nouvelles dépendances
 npm install

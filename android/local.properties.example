@@ -6,4 +6,4 @@ tmdb.api.key=d691992b1b6bb6edb3ee87bac4902d8d
 tmdb.access.token=eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJkNjkxOTkyYjFiNmJiNmVkYjNlZTg3YmFjNDkwMmQ4ZCIsIm5iZiI6MTc0MjAyNDg1Ni44MjQsInN1YiI6IjY3ZDUzMDk4MzE1MzhkZTYwOGYxNWM3ZCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.vThoE7-s7cpvu8XUQQczXpkVWW8zhm33T9tcPfY_7RM
 
 # URL du backend (à configurer une fois le backend déployé)
-backend.url=https://api.yomazone.com/tvgamerefund
+backend.url=https://api.example.com/tvgamerefund

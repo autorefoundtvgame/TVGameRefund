@@ -16,7 +16,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.tvgamerefund-rtr.entrypoints=websecure-internal,websecure-external"
-      - "traefik.http.routers.tvgamerefund-rtr.rule=Host(`api.yomazone.com`)"
+      - "traefik.http.routers.tvgamerefund-rtr.rule=Host(`api.example.com`)"
       - "traefik.http.services.tvgamerefund-svc.loadbalancer.server.port=3000"
     networks:
       - docker_default
