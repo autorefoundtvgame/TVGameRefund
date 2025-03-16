@@ -1,0 +1,41 @@
+services:
+  tvgamerefund-api:
+    build: .
+    container_name: tvgamerefund-api
+    restart: always
+    environment:
+      - PORT=3000
+      - MONGO_URI=mongodb://mongo:27017/tvgamerefund
+      - TMDB_API_KEY=d691992b1b6bb6edb3ee87bac4902d8d
+      - TMDB_ACCESS_TOKEN=eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJkNjkxOTkyYjFiNmJiNmVkYjNlZTg3YmFjNDkwMmQ4ZCIsIm5iZiI6MTc0MjAyNDg1Ni44MjQsInN1YiI6IjY3ZDUzMDk4MzE1MzhkZTYwOGYxNWM3ZCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.vThoE7-s7cpvu8XUQQczXpkVWW8zhm33T9tcPfY_7RM
+      - NODE_ENV=production
+    depends_on:
+      - mongo
+    volumes:
+      - ./logs:/app/logs
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tvgamerefund-rtr.entrypoints=websecure-internal,websecure-external"
+      - "traefik.http.routers.tvgamerefund-rtr.rule=Host(`api.yomazone.com`)"
+      - "traefik.http.services.tvgamerefund-svc.loadbalancer.server.port=3000"
+    networks:
+      - docker_default
+      - t3_proxy
+
+  mongo:
+    image: mongo:6
+    container_name: tvgamerefund-mongo
+    restart: always
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - docker_default
+
+volumes:
+  mongo-data:
+
+networks:
+  docker_default:
+    external: true
+  t3_proxy:
+    external: true

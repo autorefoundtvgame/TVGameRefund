@@ -1,0 +1,76 @@
+# Commandes pour mettre à jour le backend sur le serveur
+
+# 1. Se connecter au serveur
+ssh chapelier@yomazone.com
+
+# 2. Aller dans le répertoire du backend
+cd ~/tvgamerefund-backend
+
+# 3. Arrêter le serveur actuel
+./stop.sh
+
+# 4. Sauvegarder les fichiers existants
+mkdir -p backup/$(date +%Y%m%d)
+cp -r *.js *.json models controllers scrapers backup/$(date +%Y%m%d)/
+
+# 5. Créer/mettre à jour les répertoires nécessaires
+mkdir -p models controllers scrapers config logs
+
+# 6. Copier les nouveaux fichiers
+# Modèles
+scp /workspace/backend-setup/models/CalendarEvent.js chapelier@yomazone.com:~/tvgamerefund-backend/models/
+scp /workspace/backend-setup/models/GameQuestion.js chapelier@yomazone.com:~/tvgamerefund-backend/models/
+scp /workspace/backend-setup/models/Game.js chapelier@yomazone.com:~/tvgamerefund-backend/models/
+
+# Contrôleurs
+scp /workspace/backend-setup/controllers/calendarController.js chapelier@yomazone.com:~/tvgamerefund-backend/controllers/
+scp /workspace/backend-setup/controllers/questionController.js chapelier@yomazone.com:~/tvgamerefund-backend/controllers/
+scp /workspace/backend-setup/controllers/gameController.js chapelier@yomazone.com:~/tvgamerefund-backend/controllers/
+scp /workspace/backend-setup/controllers/tmdbController.js chapelier@yomazone.com:~/tvgamerefund-backend/controllers/
+
+# Scrapers
+scp /workspace/backend-setup/scrapers/index.js chapelier@yomazone.com:~/tvgamerefund-backend/scrapers/
+scp /workspace/backend-setup/scrapers/tf1Scraper.js chapelier@yomazone.com:~/tvgamerefund-backend/scrapers/
+scp /workspace/backend-setup/scrapers/m6Scraper.js chapelier@yomazone.com:~/tvgamerefund-backend/scrapers/
+scp /workspace/backend-setup/scrapers/tf1GameScraper.js chapelier@yomazone.com:~/tvgamerefund-backend/scrapers/
+scp /workspace/backend-setup/scrapers/m6GameScraper.js chapelier@yomazone.com:~/tvgamerefund-backend/scrapers/
+
+# Fichiers de configuration
+scp /workspace/backend-setup/config.js chapelier@yomazone.com:~/tvgamerefund-backend/
+scp /workspace/backend-setup/package.json chapelier@yomazone.com:~/tvgamerefund-backend/
+
+# 7. Mettre à jour le fichier server.js
+scp /workspace/backend-setup/server.js chapelier@yomazone.com:~/tvgamerefund-backend/
+
+# 8. Installer les nouvelles dépendances
+npm install
+
+# 9. Démarrer le serveur
+./start.sh
+
+# 10. Vérifier que le serveur fonctionne correctement
+curl http://localhost:3000
+
+# 11. Tester les nouveaux endpoints
+# Jeux
+curl http://localhost:3000/api/games
+
+# Questions
+curl http://localhost:3000/api/questions
+
+# 12. Exécuter manuellement les scrapers (optionnel)
+npm run scrape
+
+# Commandes pour utiliser Docker (alternative)
+
+# 1. Arrêter les conteneurs existants
+docker-compose down
+
+# 2. Reconstruire l'image
+docker-compose build
+
+# 3. Démarrer les conteneurs
+docker-compose up -d
+
+# 4. Vérifier les logs
+docker-compose logs -f app
