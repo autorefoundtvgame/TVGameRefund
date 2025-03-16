@@ -2,6 +2,14 @@
 
 Une application Android pour automatiser les demandes de remboursement des frais de participation aux jeux télévisés en France.
 
+## Structure du projet
+
+Le projet est organisé en deux parties principales :
+
+- **`/android`** : Application Android (frontend)
+- **`/backend`** : API REST et serveur (backend)
+- **`/docs`** : Documentation du projet
+
 ## À propos du développement
 
 Ce projet a été entièrement développé avec l'aide d'Openhands et Claude (Anthropic), sans expérience préalable en développement Android. Il s'agit d'une démonstration de la façon dont l'IA peut aider à créer des applications complexes même sans connaissances techniques préalables dans le domaine spécifique.
@@ -22,9 +30,9 @@ Cette application vise à simplifier et automatiser cette procédure de rembours
    - Génération de lettres de demande de remboursement
    - Envoi automatisé via des services comme La Poste en ligne
 
-## État actuel du développement
+## Composants du projet
 
-### Architecture
+### Application Android
 
 L'application est développée en utilisant :
 - **Kotlin** comme langage de programmation
@@ -35,80 +43,87 @@ L'application est développée en utilisant :
 - **Retrofit** pour les appels réseau
 - **Flow** pour la gestion des données asynchrones
 
-### Fonctionnalités implémentées
+### Backend API
 
-1. **Navigation principale** :
-   - Barre de navigation en bas avec 5 sections : Jeux, Participations, Factures, Profil, Paramètres
-   - Navigation entre les différents écrans
-
-2. **Écran des jeux** :
-   - Liste des jeux télévisés
-   - Recherche et filtrage des jeux
-   - Système de favoris
-   - Affichage des informations essentielles (chaîne, date, coût, etc.)
-
-3. **Écran des paramètres** :
-   - Configuration des identifiants d'opérateurs téléphoniques
-   - Test de connexion aux services des opérateurs
-
-4. **Écrans de base** pour les autres sections :
-   - Participations
-   - Factures
-   - Profil
-
-### Prochaines étapes
-
-1. **Écran de détail des jeux** :
-   - Affichage complet des informations sur un jeu
-   - Règlement et instructions de remboursement
-   - Possibilité d'enregistrer une participation
-
-2. **Récupération des factures** :
-   - Connexion à l'API de Free Mobile
-   - Téléchargement automatique des factures
-   - Analyse des factures pour identifier les frais de jeu
-
-3. **Gestion des participations** :
-   - Enregistrement des participations
-   - Suivi du statut des demandes de remboursement
-   - Notifications pour les étapes importantes
-
-4. **Automatisation des envois** :
-   - Intégration avec des services d'envoi de courrier en ligne
-   - Génération de lettres types adaptées à chaque jeu
-   - Suivi des envois
+Le backend est développé avec :
+- **Node.js** comme environnement d'exécution
+- **Express** comme framework web
+- **MongoDB** pour la base de données
+- **Mongoose** comme ODM (Object Document Mapper)
+- **Axios** pour les requêtes HTTP
+- **Cheerio** pour le scraping des règlements de jeux
 
 ## Installation et configuration
 
 ### Prérequis
 
-- Android Studio Arctic Fox (2020.3.1) ou supérieur
-- JDK 17 ou supérieur
-- SDK Android 34 (compileSdk)
-- SDK Android 26 minimum (minSdk)
+- Node.js 18+ (pour le backend)
+- MongoDB 6+ (pour le backend)
+- Android Studio Arctic Fox (2020.3.1) ou supérieur (pour l'application Android)
+- JDK 17 ou supérieur (pour l'application Android)
+- Docker et Docker Compose (optionnel, pour le déploiement du backend)
 
-### Installation
+### Installation du backend
 
-1. Clonez le dépôt :
+1. Accédez au dossier backend :
+```bash
+cd backend
 ```
-git clone https://github.com/autorefoundtvgame/TVGameRefund.git
+
+2. Installez les dépendances :
+```bash
+npm install
+```
+
+3. Configurez les variables d'environnement :
+```bash
+cp .env.example .env
+# Modifiez le fichier .env avec vos propres valeurs
+```
+
+4. Démarrez le serveur :
+```bash
+npm start
+```
+
+Ou avec Docker :
+```bash
+docker compose up -d
+```
+
+### Installation de l'application Android
+
+1. Accédez au dossier android :
+```bash
+cd android
 ```
 
 2. Ouvrez le projet dans Android Studio
 
 3. Configurez votre fichier `google-services.json` avec vos propres identifiants Firebase
 
-4. Configurez votre clé API TMDb dans le fichier `TMDbRepository.kt`
+4. Configurez votre clé API TMDb dans le fichier `local.properties`
 
 5. Synchronisez le projet avec les fichiers Gradle
 
 6. Exécutez l'application sur un émulateur ou un appareil physique
 
+## API Endpoints
+
+Le backend expose les endpoints suivants :
+
+- **GET /api/games** : Récupérer tous les jeux
+- **GET /api/games/:id** : Récupérer un jeu spécifique
+- **GET /api/games/rules/:channel** : Récupérer les règlements d'une chaîne
+- **GET /api/games/refundable** : Vérifier si un jeu est remboursable
+- **GET /api/calendar/events** : Récupérer les événements du calendrier
+- **GET /api/questions** : Récupérer les questions sur les jeux
+
 ## Contribution
 
 Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou à soumettre une pull request.
 
-Si vous souhaitez contribuer, consultez notre fichier [CONTRIBUTING.md](CONTRIBUTING.md) pour plus d'informations sur le processus de contribution et les standards de code.
+Si vous souhaitez contribuer, consultez notre fichier [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) pour plus d'informations sur le processus de contribution et les standards de code.
 
 ## Licence
 
